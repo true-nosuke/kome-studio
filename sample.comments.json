@@ -1,0 +1,10 @@
+[
+  {"time": 0, "content": "[ue big white]みんなで、続きをつくろう。"},
+  {"time": 1.25, "content": "[naka medium white]こんにちは！"},
+  {"time": 2, "content": "[naka big cyan]ここ好き"},
+  {"time": 2.3, "content": "[naka medium pink]わかる！"},
+  {"time": 4, "content": "[shita small yellow]同じ動画と、このJSONを共有してください"},
+  {"time": 5, "content": "[naka medium #99ff99 speed=0.5]ゆっくり流れるコメント"},
+  {"time": 7, "content": "[ue medium orange font=mincho]明朝体・上に固定"},
+  {"time": 9, "content": "[shita small white dur=4]複数行のコメントも\nそのまま保存できます"}
+]
