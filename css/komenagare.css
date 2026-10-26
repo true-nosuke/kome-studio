@@ -1,3 +1,4 @@
+/* Modified for KOME Studio: removed Vim UI styles; see NOTICE. */
 :root{
   --bg:#121212;--panel:#1c1c1c;--panel2:#262626;--line:#333;--text:#e9e9e9;--muted:#9a9a9a;
   --accent:#2f8cff;--accent2:#ffb300;--danger:#ff5a5a;--ok:#4cd28a;
@@ -137,8 +138,6 @@ a.btn:hover{background:#313131}
 .post{background:var(--accent2);border-color:var(--accent2);color:#111;font-weight:700}
 .post:hover{filter:brightness(1.08);background:var(--accent2)}
 
-/* ---------- palette ---------- */
-.palette{position:fixed;z-index:30;background:#1b1b1b;border:1px solid #3a3a3a;border-radius:8px;box-shadow:0 10px 32px rgba(0,0,0,.6);padding:10px 12px 12px;display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:12px;overflow:auto;overscroll-behavior:contain}
 /* ---------- presets ---------- */
 .presets{display:flex;gap:6px;align-items:center;padding:6px 10px 8px;background:#1f1f1f;border-top:1px solid #2a2a2a;overflow-x:auto;scrollbar-width:thin}
 .preset{flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:#2b2b2b;border:1px solid #3e3e3e;font-size:13px;max-width:200px}
@@ -269,52 +268,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 @media (pointer: coarse){ .tl-vbar{width:18px} .tl-vthumb{left:3px;right:3px} }
 .tl-main:focus-visible{box-shadow:inset 0 0 0 1px var(--accent)}
 
-/* ---------- Vim ---------- */
-.vim-head{display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;flex:none;overflow-x:auto;scrollbar-width:none}
-.vim-head::-webkit-scrollbar{display:none}
-.vim-head button{padding:3px 8px;font-size:12px}
-.vim-head .muted{white-space:nowrap}
-.vim{--vbg:#0d100d;--vfg:#d6d6d0;flex:1;min-height:0;display:flex;flex-direction:column;background:var(--vbg);color:var(--vfg);position:relative;
-  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,"BIZ UDGothic","Noto Sans Mono CJK JP","Osaka-Mono","MS Gothic",monospace;font-size:13px;line-height:1.45}
-.vim-screen{flex:1;min-height:0;overflow:hidden;cursor:text;touch-action:none;padding-top:2px}
-.vim.bell .vim-screen{filter:brightness(1.6)}
-.vl{display:flex;min-height:1.45em}
-.vl .ln{flex:none;color:#55625a;text-align:right;padding:0 8px 0 6px;white-space:pre;user-select:none;position:sticky;left:0;background:var(--vbg)}
-.vl .ln.cur{color:#e5c07b}
-.vl .ln.now{color:#7ee787}
-.vl .ln.now::before{content:"▶";font-size:9px;position:absolute;left:1px;top:.3em}
-.vim.nonu .ln{display:none}
-.vl .lt{flex:1;min-width:0;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;tab-size:8}
-.vim.nowrap .vl .lt{flex:none;white-space:pre}
-.vl.tilde .lt{color:#4b63d8}
-.k-time{color:#e5c07b}.k-cmd{color:#56b6c2}.k-pos{color:#c678dd}.k-dur{color:#98c379}.k-sep{color:#5c6370}
-.k-esc{color:#d19a66}.k-com{color:#6f8f73;font-style:italic}.k-err{color:#ff7b72;text-decoration:underline wavy #ff7b72}
-.o-vis{background:#3b4a70}.o-srch{background:#6e5a14;color:#fff}.o-inc{background:#e2b43a;color:#111}
-.o-cur{background:var(--vfg);color:var(--vbg)}
-.o-bar{box-shadow:inset 2px 0 0 var(--vfg)}
-.o-und{box-shadow:inset 0 -3px 0 var(--vfg)}
-.vim:not(.focus) .o-cur{background:none;color:inherit;outline:1px solid #8a8a84;outline-offset:-1px}
-.vim:not(.focus) .o-bar,.vim:not(.focus) .o-und{box-shadow:none}
-.vim-status{flex:none;display:flex;gap:12px;background:#262b26;color:#cfd3cf;padding:1px 8px;white-space:nowrap;overflow:hidden}
-.vim-status .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.vim-status .mod{color:#e5c07b}
-.vim-status .stale{color:#ff7b72}
-.vim-cmd{flex:none;display:flex;gap:12px;padding:1px 8px;min-height:1.45em;white-space:pre;overflow:hidden}
-.vim-cmd .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.vim-cmd .err{color:#ff7b72}
-.vim-cmd .mode{font-weight:700}
-.vim-cmd .rec{color:#e5c07b}
-.vim-cmd .cc{background:var(--vfg);color:var(--vbg)}
-.vim-more{position:absolute;left:0;right:0;bottom:0;max-height:85%;overflow:auto;background:var(--vbg);border-top:1px solid #333;padding:4px 8px;white-space:pre-wrap;word-break:break-all;z-index:2}
-.vim-more .prompt{color:#7ee787}
-.vim-input{position:absolute;left:0;top:0;width:2px;height:1.45em;opacity:0;padding:0;border:0;margin:0;resize:none;overflow:hidden;font-size:16px;
-  color:transparent;background:transparent;caret-color:transparent;pointer-events:none;white-space:pre}
-.vim-keys{display:none;gap:4px;padding:6px;background:#181818;border-top:1px solid var(--line);flex:none;overflow-x:auto;scrollbar-width:none}
-.vim-keys::-webkit-scrollbar{display:none}
-.vim-keys button{flex:1 0 auto;min-width:38px;padding:8px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
-.vim-keys button.on{background:var(--accent);border-color:var(--accent)}
-@media (pointer: coarse){ .vim-keys{display:flex} }
-
 /* ---------- edit dialog ---------- */
 .ed-grid{grid-template-columns:90px 1fr}
 .ed-grid textarea{width:100%;resize:vertical;background:#fff;color:#111;border:1px solid #555;border-radius:6px;padding:6px 8px;line-height:1.4;font:inherit;color:#111}
@@ -357,7 +310,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   .side-tabs{display:none}
   .timeline{flex:1 1 0;height:auto;min-height:230px;border-top:none;margin-top:6px}
   .tl-resize{display:none}
-  /* 縦向きでは、タブの上のつまみをドラッグして動画の大きさを変え、下の画面（タイムライン・リスト・Vim・履歴）がその残りに広がる */
+  /* 縦向きでは、タブの上のつまみをドラッグして動画の大きさを変え、下の画面（時間の調整・コメント一覧・編集の記録）がその残りに広がる */
   .m-resize{display:block;flex:none;position:relative;height:18px;margin:2px 8px -8px;cursor:ns-resize;touch-action:none}
   .m-resize::after{content:"";position:absolute;left:50%;top:7px;width:44px;height:4px;margin-left:-22px;border-radius:2px;background:#666}
   .m-resize.on::after{background:var(--accent)}

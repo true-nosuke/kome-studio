@@ -30,21 +30,32 @@ const server=http.createServer((req,res)=>{
   const errors=[], requests=[];
   async function context(opts={}){
     const c=await browser.newContext(opts);
-    await c.addInitScript(()=>{window.showOpenFilePicker=undefined;window.showSaveFilePicker=undefined;try{localStorage.setItem('kome-studio.name','Browser test');}catch{}});
+    await c.addInitScript(()=>{window.showOpenFilePicker=undefined;window.showSaveFilePicker=undefined;try{localStorage.setItem('kome-studio.name','Browser test');if(!localStorage.getItem('kome-studio.settings'))localStorage.setItem('kome-studio.settings',JSON.stringify({sidePane:'vim',mobilePane:'vim',timeline:true}));}catch{}});
     c.on('page',p=>{p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.on('request',r=>requests.push(r.url()));});
     return c;
   }
   try{
     for(const url of ['file://'+path.join(root,'index.html'),base+'/']){
-      const c=await context({viewport:{width:1440,height:1050},colorScheme:'light'});const p=await c.newPage();await p.goto(url);
+      const c=await context({viewport:{width:1440,height:1050},colorScheme:'light'});const p=await c.newPage();await p.goto(url);assert.equal(await p.locator('#paneVim').count(),0);assert.equal(await p.locator('script[src*=vim]').count(),0);assert.equal(await p.locator('#cmdInput').isVisible(),false);assert.equal(await p.locator('#timeline').isVisible(),false);assert.equal(await p.locator('#btnPost').isDisabled(),true);
+      await p.locator('.more-tools').evaluate(el=>el.open=true);await p.locator('#btnTimeline').click();assert.equal(await p.locator('#timeline').isVisible(),true);
+      await p.locator('.more-tools').evaluate(el=>el.open=true);await p.locator('#btnTimeline').click();assert.equal(await p.locator('#timeline').isVisible(),false);
       await p.locator('#fileComments').setInputFiles(sample);await p.waitForFunction(()=>document.querySelector('#commentCount').textContent==='コメント 8');
       await p.locator('#fileVideo').setInputFiles(fixture);await p.waitForFunction(()=>document.querySelector('#video').readyState>=2);
-      await p.locator('#cmdInput').fill('ue red');await p.locator('#textInput').fill('<b>literal</b>');await p.locator('#btnPost').click();
+      await p.locator('.simple-style').evaluate(el=>el.open=true);await p.locator('#stylePosition').selectOption('ue');await p.locator('#styleColor').selectOption('red');await p.locator('#textInput').fill('<b>literal</b>');await p.locator('#btnPost').click();
       await p.waitForFunction(()=>document.querySelector('#commentCount').textContent==='コメント 9');assert.equal(await p.locator('#list .row b').count(),0);
+      await p.locator('#list .row').last().locator('.del').click();
+      assert.ok((await p.locator('#edCmd').inputValue()).includes('@4'));await p.locator('#edText').fill('わかりやすく編集');await p.locator('#edColor').selectOption('yellow');await p.locator('#edOk').click();
+      await p.waitForFunction(()=>document.querySelector('#list').textContent.includes('わかりやすく編集'));
+      await p.locator('#btnUndo').click();await p.waitForFunction(()=>!document.querySelector('#list').textContent.includes('わかりやすく編集'));
+      await p.locator('#btnRedo').click();await p.waitForFunction(()=>document.querySelector('#list').textContent.includes('わかりやすく編集'));
+      await p.locator('#btnShare').click();assert.ok(await p.locator('#shareOnlineNote').textContent().then(s=>s.includes('招待リンク')));
+      const sharedDownload=p.waitForEvent('download');await p.locator('#btnShareDownload').click();const shared=await sharedDownload;
+      const sharedJSON=JSON.parse(fs.readFileSync(await shared.path(),'utf8'));assert.equal(sharedJSON.format,'komenagare');assert.equal(sharedJSON.comments.length,9);
+      await p.locator('#shareClose').click();
       for(const fmt of ['json','csv','xml','jsonl']){
         await p.locator('#setFormat').evaluate((el,f)=>{el.value=f;el.dispatchEvent(new Event('change'));},fmt);
         const dp=p.waitForEvent('download');await p.locator('#btnSave').click();const d=await dp;
-        const bytes=fs.readFileSync(await d.path(),'utf8');assert.ok(bytes.includes('literal'));
+        const bytes=fs.readFileSync(await d.path(),'utf8');assert.ok(bytes.includes('literal'));assert.ok(bytes.includes('わかりやすく編集'));
         await p.locator('#fileComments').setInputFiles({name:'roundtrip.'+fmt,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
         await p.waitForFunction(()=>document.querySelector('#commentCount').textContent==='コメント 9');
       }
@@ -52,9 +63,17 @@ const server=http.createServer((req,res)=>{
       await p.locator('#fileComments').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('[{"time":-1,"content":"bad"}]')});
       await p.waitForFunction(()=>document.querySelector('#toasts').textContent.includes('0以上'));assert.equal(await p.locator('#list .row').count(),9);
       await p.waitForTimeout(350);await p.reload();await p.locator('#recoveryRestore').click();await p.waitForFunction(()=>document.querySelector('#commentCount').textContent==='コメント 9');
-      await p.locator('#btnConnection').click();assert.ok(await p.locator('#connectionDlg').isVisible());await p.locator('#connectionClose').click();
+      await p.locator('.more-tools').evaluate(el=>el.open=true);await p.locator('#btnConnection').click();assert.ok(await p.locator('#connectionDlg').isVisible());await p.locator('#connectionClose').click();
       await p.setViewportSize({width:390,height:844});await p.waitForTimeout(200);
       const overflow=await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(overflow,false,'390px page overflow');
+      await p.setViewportSize({width:1440,height:1050});
+      while(await p.locator('#list .row').count()){
+        await p.locator('#list .row').first().locator('.del').click();await p.locator('#edDelete').click();
+      }
+      assert.equal(await p.locator('#btnSave').isDisabled(),false,'last deletion must still be saveable');
+      await p.locator('#setFormat').evaluate(el=>{el.value='json';el.dispatchEvent(new Event('change'));});
+      const emptyDownload=p.waitForEvent('download');await p.locator('#btnSave').click();const empty=await emptyDownload;
+      assert.equal(JSON.parse(fs.readFileSync(await empty.path(),'utf8')).comments.length,0);
       await c.close();console.log('PASS standalone',url.startsWith('file:')?'file://':'HTTP');
     }
     // Protocol-4 contract double, not the upstream application/server.
@@ -80,6 +99,11 @@ const server=http.createServer((req,res)=>{
     for(const p of [p1,p2]){await p.waitForFunction(()=>document.querySelector('#collabStatus').classList.contains('on'));await p.locator('#fileVideo').setInputFiles(fixture);await p.waitForFunction(()=>document.querySelector('#video').readyState>=2);}
     await p1.locator('#textInput').fill('shared comment');await p1.locator('#btnPost').click();
     await p2.waitForFunction(()=>document.querySelector('#list').textContent.includes('shared comment'));assert.equal(hostStore.size,1);assert.equal(hellos.length,2);
+    await p1.evaluate(()=>Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{throw Error('mock denied');}},configurable:true}));
+    await p1.evaluate(()=>history.replaceState(null,'',location.pathname+location.search+'&otp=do-not-share'));
+    await p1.locator('#btnShare').click();await p1.locator('#btnCopyInvite').click();
+    const link=new URL(await p1.locator('#inviteFallback').inputValue());assert.equal(link.searchParams.get('k'),'test');assert.equal(link.searchParams.get('p'),project.id);assert.equal(link.searchParams.has('otp'),false);assert.equal(link.searchParams.has('session'),false);
+    await p1.locator('#shareClose').click();
     assert.equal(await p1.locator('#recoveryBanner').isVisible(),false);await c1.close();await c2.close();console.log('PASS protocol-4 two-client contract mock');
     // No network use except the local test server and local resources.
     assert.deepEqual(requests.filter(u=>/^https?:/.test(u)&&!u.startsWith(base)),[]);

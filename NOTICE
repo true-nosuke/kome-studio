@@ -8,6 +8,8 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 Modified for KOME Studio: branding, isolated browser storage, legacy JSON
 conversion, JSONL/XML output, recovery, documentation and integration tests.
+Further modified: removed Vim editor/engine; introduced beginner-first appearance
+controls, step guidance, explicit edit/undo buttons and guided sharing.
 The original KOME Studio application remains available in legacy.html.
 
 lib/mediabunny-1.61.6.min.js is Mediabunny by Vanilagy and contributors,
