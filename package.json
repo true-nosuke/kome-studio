@@ -1,0 +1,11 @@
+{
+  "name": "kome-studio",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Standalone video comment editor compatible with komenagare",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/browser-smoke.cjs"
+  },
+  "devDependencies": { "playwright": "1.63.0" }
+}

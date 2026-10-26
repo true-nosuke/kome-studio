@@ -1,0 +1,18 @@
+KOME Studio
+
+The Web editor in index.html, css/, js/ (except kome-compat.js), and
+upstream tests is derived from komenagare by igarinpiano and contributors:
+https://github.com/igarinpiano/komenagare
+Pinned upstream commit: 84cb236261c244ae500afac16ff533d9a75f1057
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Modified for KOME Studio: branding, isolated browser storage, legacy JSON
+conversion, JSONL/XML output, recovery, documentation and integration tests.
+The original KOME Studio application remains available in legacy.html.
+
+lib/mediabunny-1.61.6.min.js is Mediabunny by Vanilagy and contributors,
+licensed under MPL-2.0; see lib/mediabunny-LICENSE.txt. It is unmodified.
+
+License scope: LICENSE applies to the imported Apache-2.0 Web code and
+new compatibility extensions. This change does not assign a new license
+to the retained original legacy.html or original sample.comments.json.
