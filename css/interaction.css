@@ -1,0 +1,111 @@
+/* Direct-manipulation UI for KOME Studio. Apache-2.0. */
+:root{--ui-soft:#202a36;--ui-blue:#5e9fe8;--ui-tint:#172b44}
+@media(prefers-color-scheme:light){:root{--ui-soft:#f2f5f8;--ui-blue:#216fc0;--ui-tint:#e5f2fc}}
+.topbar{padding:12px 20px;gap:12px}
+.brand{font-size:19px;letter-spacing:.02em}
+.main-actions{margin-left:auto;gap:8px}
+.main-actions button{min-height:44px;padding:8px 16px;font-size:14px}
+.topbar .status{order:4;width:100%;margin:0;justify-content:flex-end;gap:12px}
+#videoStatus{margin-right:auto;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fileStatus{font-size:13px;gap:4px}
+#fileStatus>span:first-child{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.start-guide{padding:12px 20px}
+.start-guide p{display:none}
+.has-video .start-guide{display:none}
+.layout{gap:16px;padding:16px}
+body:not(.has-video) .comment-compose{display:none}
+body:not(.has-video) .stage{min-height:340px;background:var(--ui-soft)}
+body:not(.has-video) .stage video,body:not(.has-video) #commentCanvas{visibility:hidden}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;pointer-events:auto;background:var(--ui-soft);color:var(--text)}
+.empty .drop-icon{width:72px;height:72px;display:grid;place-content:center;background:var(--ui-tint);color:var(--ui-blue);border:1px dashed var(--ui-blue);border-radius:16px;font-size:40px;line-height:1;font-weight:300}
+.empty h1{font-size:26px;line-height:1.4;margin:0;letter-spacing:.02em}
+.empty p{font-size:16px;line-height:1.5;margin:0;color:var(--muted)}
+.empty #btnPickVideo{font-size:16px;min-height:48px;padding:10px 28px;border-radius:8px;margin-top:8px}
+.privacy-note{font-size:14px;color:var(--muted);line-height:1.5;max-width:380px}
+.stage-play{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:12px;min-height:64px;padding:16px 24px;border:1px solid #ffffff66;border-radius:12px;background:#101010cc!important;color:white!important;font-size:18px;box-shadow:0 4px 24px #0003}
+.stage-play span{font-size:24px}
+.comment-compose{padding:16px;background:var(--panel);color:var(--text);border-top:1px solid var(--line)}
+.compose-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;font-size:16px;font-weight:650}
+.post-time{display:inline-flex;gap:6px;align-items:center;background:var(--ui-tint);color:var(--ui-blue);padding:6px 10px;border-radius:6px;font-size:14px;white-space:nowrap}
+.post-time time{font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace}
+.comment-compose .simple-style{padding:0;border:0;background:none}
+.comment-compose .style-grid{padding:0;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.comment-compose .style-grid label{display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap;color:var(--muted)}
+.comment-compose .style-grid select{flex:1;min-width:0;font-size:14px}
+.comment-compose .comment-bar{padding:0;margin-top:12px;border:0;background:none;gap:12px;align-items:stretch;flex-wrap:nowrap}
+.comment-compose #textInput{min-height:64px;max-height:128px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:16px;padding:12px;order:0;flex:1 1 auto}
+.comment-compose #textInput:focus{outline:2px solid var(--ui-blue);outline-offset:0}
+.comment-compose #btnPost{min-height:64px;background:#216fc0;border-color:#216fc0;color:#fff;padding:12px 20px;font-size:16px;flex:none}
+.comment-compose #btnPost:hover{background:#195da3}
+.comment-compose #charCount{display:none}
+.player{border:1px solid var(--line)}
+.side{border:1px solid var(--line);border-radius:12px}
+.side-head{padding:16px 16px 8px}
+.side-title{font-size:16px}
+.list-hint{margin:4px 16px 12px}
+.search{margin:0 16px 8px;min-height:44px;font-size:14px}
+.list{padding:0 8px 8px}
+.row{grid-template-columns:56px minmax(0,1fr) 48px;grid-template-rows:auto auto;gap:4px 12px;border:1px solid var(--line);border-radius:8px;margin:8px 0;padding:12px;align-items:center;background:var(--panel)}
+.row.current{background:var(--ui-tint);border-color:var(--ui-blue)}
+.row:hover{border-color:var(--ui-blue)}
+.row .rt{grid-row:1/3;grid-column:1;min-height:44px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ui-blue);font-size:14px;font-variant-numeric:tabular-nums;padding:4px}
+.row .rc{grid-column:2;grid-row:1;display:block;text-align:left;padding:0;border:0;background:none;color:var(--text);font-size:15px;line-height:1.6;white-space:pre-wrap;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.row .rm{grid-column:2;grid-row:2;display:flex;gap:6px;font-size:13px;line-height:1.5;color:var(--muted);max-width:100%}
+.row .del{grid-column:3;grid-row:1/3;min-width:44px;background:var(--panel);border-color:var(--line);border-radius:6px}
+.share-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.share-choice{display:grid;grid-template-columns:44px minmax(0,1fr) 12px;align-items:center;gap:12px;min-height:130px;padding:16px;text-align:left;white-space:normal;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.share-choice:hover{background:var(--ui-tint);border-color:var(--ui-blue)}
+.choice-icon{width:44px;height:44px;display:grid;place-content:center;border-radius:10px;background:var(--ui-tint);color:var(--ui-blue);font-size:26px}
+.share-choice strong{display:block;font-size:16px;line-height:1.5;color:var(--text)}
+.share-choice small{display:block;font-size:14px;line-height:1.5;color:var(--muted);margin-top:4px}
+.share-choice>span:last-child{font-size:26px;color:var(--muted)}
+.share-back{min-height:44px;margin-bottom:12px;padding:8px 12px;color:var(--ui-blue);border:0;background:transparent;font-size:14px}
+#shareDlg .share-card{margin:0;border:0;padding:8px 0}
+#shareDlg .share-card h3{font-size:20px}
+#shareDlg .share-card button{min-height:48px}
+#shareDlg .share-actions{display:grid;gap:12px}
+#shareDlg .share-card p{font-size:15px;line-height:1.7}
+@media(max-width:1100px) and (min-width:981px){.comment-compose .style-grid label{display:grid;gap:4px}}
+@media(max-width:980px){
+  .topbar{padding:12px;gap:8px;display:flex;flex-wrap:wrap}
+  .topbar .brand{font-size:18px;margin:0 auto 0 0}
+  .more-tools{order:0}
+  .main-actions{order:1;margin:0;flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .main-actions button{min-height:44px;padding:8px;font-size:14px}
+  .topbar .status{order:2;width:100%;justify-content:flex-start;gap:8px;margin:0}
+  #videoStatus{display:none}
+  .topbar #fileStatus{font-size:13px}
+  .start-guide{padding:8px 12px}
+  .start-guide ol{gap:8px 16px}
+  .layout{padding:0;gap:0}
+  .player-col{padding:8px 12px 0}
+  .player{max-width:100%}
+  body:not(.has-video) .stage{min-height:340px;aspect-ratio:auto;height:340px}
+  .empty{padding:24px 16px;gap:12px}
+  .empty h1{font-size:22px}
+  .empty p{font-size:14px}
+  .comment-compose{padding:12px}
+  .compose-caption{font-size:15px;margin-bottom:10px}
+  .comment-compose .style-grid{gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .comment-compose .style-grid label{display:grid;gap:4px;font-size:13px}
+  .comment-compose .style-grid select{min-height:44px;font-size:14px;padding:6px;max-width:100%}
+  .comment-compose .comment-bar{display:grid;grid-template-columns:1fr}
+  .comment-compose #textInput{width:100%;min-height:64px;min-width:0}
+  .comment-compose #btnPost{min-height:48px;padding:10px}
+  .mtabs{padding:8px 12px 0}
+  .side{margin:8px 12px 12px;min-height:320px}
+  .share-choice{min-height:112px}
+}
+@media(max-width:600px){
+  .share-choices{grid-template-columns:1fr;gap:10px}
+  .share-choice{min-height:96px;padding:12px}
+  .row{gap:4px 8px;padding:10px;grid-template-columns:52px minmax(0,1fr) 44px}
+  .row .rc{font-size:15px}
+  .post-time{font-size:13px;padding:6px 8px}
+  .topbar #fileStatus>span:first-child{display:none}
+  .stage-play{min-height:56px;padding:12px 20px;font-size:16px}
+}
+body:not(.has-video) .controls{display:none}
+body:not(.has-video):not(.has-comments) .layout{grid-template-columns:minmax(0,1fr)}
+body:not(.has-video):not(.has-comments) .side,body:not(.has-video):not(.has-comments) .side-resize{display:none}
+@media(prefers-color-scheme:light){.empty,.comment-compose{--muted:#686560}}

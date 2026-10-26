@@ -4,38 +4,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KOME Studio — komenagare互換エディター</title>
+<title>KOME Studio — かんたん動画コメント</title>
 <link rel="stylesheet" href="css/komenagare.css">
 <link rel="stylesheet" href="css/kome-studio.css">
+<link rel="stylesheet" href="css/interaction.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">KOME <b>Studio</b></div>
-  <div class="tb-group">
-    <button id="btnOpenVideo" class="primary">🎬 動画を開く</button>
-  </div>
-  <div class="tb-group">
-    <button id="btnOpenComments" title="コメントファイルを開く（現在のコメントと置き換え）">📂 コメントを開く</button>
-    <button id="btnMerge" title="複数のコメントファイルを現在のコメントに統合">🔀 マージ</button>
-    <button id="btnSave" title="保存 (Ctrl+S)">💾 保存</button>
-    <button id="btnSaveAs" title="名前を付けて保存 (Ctrl+Shift+S)">名前を付けて保存</button>
-  </div>
-  <div class="tb-group">
-    <button id="btnTimeline" class="desk-only" title="タイムラインの表示切替">🎞 タイムライン</button>
-    <button id="btnExport">⏺ コメ付き書き出し</button>
-    <button id="btnConnection">共同編集について</button>
-    <button id="btnHelp" title="使い方">？</button>
-  </div>
-  <div class="status">
-    <span id="videoStatus">動画: なし</span>
-    <span id="fileStatus"></span>
-    <button id="projectBtn" class="collab proj" hidden title="プロジェクトの一覧（切り替え・新しいタブで開く）"></button>
+  <nav class="main-actions" aria-label="主な操作">
+    <button id="btnOpenVideo">動画を開く</button>
+    <button id="btnSave">コメントを保存</button>
+    <button id="btnShare" class="primary">共有する</button>
+  </nav>
+  <details class="more-tools">
+    <summary>その他</summary>
+    <div class="more-menu">
+      <button id="btnSaveAs">別の名前で保存</button>
+      <button id="btnTimeline" class="desk-only">細かく時間を調整する</button>
+      <button id="btnConnection">オンライン共同編集について</button>
+      <button id="btnHelp">使い方を見る</button>
+    </div>
+  </details>
+  <div class="status" aria-live="polite">
+    <span id="videoStatus">動画: まだ選んでいません</span><span id="fileStatus"></span>
+    <button id="projectBtn" class="collab proj" hidden title="編集する動画グループを選ぶ"></button>
     <button id="collabStatus" class="collab" hidden></button>
-    <button id="conflictBtn" class="collab warn" hidden title="ほかの人の変更と重なった変更を確認する"></button>
+    <button id="conflictBtn" class="collab warn" hidden></button>
   </div>
 </header>
-
+<section class="start-guide" aria-label="使い方の3ステップ">
+  <ol><li id="stepVideo" aria-current="step"><span>1</span> 動画を開く</li><li id="stepComment"><span>2</span> 好きな場面でコメント</li><li id="stepSave"><span>3</span> 保存して渡す</li></ol>
+  <p id="guideText" role="status">まず「動画を開く」から、手元の動画を選んでください。</p>
+</section>
 <section id="recoveryBanner" class="recovery-banner" aria-label="作業データの復元" hidden>
   <span>このブラウザーに前回の作業データがあります。動画は開き直してください。</span>
   <button id="recoveryRestore">コメントを復元</button><button id="recoveryDismiss">復元せず続ける</button>
@@ -48,10 +50,13 @@
         <canvas id="commentCanvas"></canvas>
         <div class="peer-cursors" id="peerCursors"></div>
         <div class="follow-bar" id="followBar" hidden><span class="dot"></span><span><b id="followName"></b> を追いかけています</span><button id="followStop">やめる</button></div>
+        <button id="stagePlay" class="stage-play" hidden aria-label="動画を再生"><span aria-hidden="true">▶</span> 再生</button>
         <div class="empty" id="emptyState">
-          <div class="empty-title">動画ファイルをここにドロップ</div>
-          <div class="empty-sub">または上の「動画を開く」から選択してください。<br>
-            コメントファイル（.json / .jsonl / .csv / ニコニコ形式 .xml）もドロップで読み込めます。</div>
+          <div class="drop-icon" aria-hidden="true">＋</div>
+          <h1>動画を選んで、コメントしよう</h1>
+          <p>動画をここに置くか、下のボタンから選べます。</p>
+          <button id="btnPickVideo" class="primary">動画ファイルを選ぶ</button>
+          <span class="privacy-note">動画は端末の中で開きます。アップロードされません。</span>
         </div>
       </div>
       <div class="controls">
@@ -78,43 +83,54 @@
           <button class="icon" id="btnFull" title="フルスクリーン (F)"></button>
         </div>
       </div>
+      <section class="comment-compose" aria-label="コメントを追加">
+        <div class="compose-caption"><label for="textInput">この場面にコメント</label><span class="post-time"><span aria-hidden="true">◷</span> <time id="postAt">0:00</time></span></div>
+<section class="simple-style" aria-label="文字の見た目">
+        <div class="style-grid">
+          <label>位置<select id="stylePosition" data-style-group="pos"><option value="naka">横に流れる</option><option value="ue">上に固定</option><option value="shita">下に固定</option></select></label>
+          <label>大きさ<select id="styleSize" data-style-group="size"><option value="medium">ふつう</option><option value="big">大きい</option><option value="small">小さい</option></select></label>
+          <label>色<select id="styleColor" data-style-group="color"><option value="white">白</option><option value="red">赤</option><option value="pink">ピンク</option><option value="orange">オレンジ</option><option value="yellow">黄色</option><option value="green">緑</option><option value="cyan">水色</option><option value="blue">青</option><option value="purple">紫</option><option value="black">黒</option></select></label>
+        </div>
+      </section>
       <div class="comment-bar">
-        <button id="btnPalette" class="cmd-btn" title="コマンド一覧">コマンド</button>
-        <input id="cmdInput" class="cmd-input" placeholder="例: ue red big" spellcheck="false" autocomplete="off">
-        <textarea id="textInput" rows="1" placeholder="コメントを入力（Enterで投稿 / Shift+Enterで改行）"></textarea>
+
+        <input id="cmdInput" type="hidden" value="">
+        <textarea id="textInput" rows="1" aria-label="コメント本文" placeholder="ここ好き！ など、ひとこと書いてみよう"></textarea>
         <span id="charCount" class="char-count">0</span>
         <button id="btnPost" class="post">コメントする</button>
       </div>
-      <div class="presets" id="presets"></div>
-      <div class="palette" id="palette" hidden></div>
+
+
+      </section>
     </div>
   </section>
 
   <div class="m-resize" id="mResize" title="ドラッグで動画の大きさを変更（ダブルタップで元に戻す）"></div>
   <nav class="mtabs" id="mtabs">
-    <button class="mtab" data-mpane="timeline">🎞 タイムライン</button>
-    <button class="mtab" data-mpane="list">☰ リスト</button>
-    <button class="mtab" data-mpane="vim">⌨ Vim</button>
-    <button class="mtab" data-mpane="history">🕘 履歴</button>
+    <button class="mtab" data-mpane="timeline">時間の調整</button>
+    <button class="mtab" data-mpane="list">コメント一覧</button>
+    <button class="mtab" data-mpane="history">編集の記録</button>
   </nav>
 
   <div class="side-resize" id="sideResize" title="ドラッグで幅を変える（ダブルクリックで元に戻す）"></div>
   <aside class="side" id="side">
     <div class="side-tabs">
-      <button class="stab" data-pane="list">コメントリスト</button>
-      <button class="stab" data-pane="vim">Vim エディタ</button>
-      <button class="stab" data-pane="history">変更履歴</button>
+      <button class="stab" data-pane="list">コメント一覧</button>
+      <button class="stab" data-pane="history">編集の記録</button>
     </div>
     <div class="pane" id="paneList">
     <div class="side-head">
-      <div class="side-title">コメントリスト<span id="listCount">0件</span></div>
+      <div class="side-title">コメント一覧<span id="listCount">0件</span></div>
       <label class="chk"><input type="checkbox" id="autoScroll" checked> 自動スクロール</label>
     </div>
-    <input id="search" class="search" placeholder="コメント・コマンドで絞り込み" autocomplete="off">
-    <div class="list-head"><span>時間</span><span>コメント</span><span>コマンド</span><span></span></div>
+    <input id="search" class="search" placeholder="コメントを探す" autocomplete="off">
+
+    <p class="list-hint">時間を押すとその場面へ。本文を押すと編集。</p>
     <div class="list" id="list"></div>
+    <div class="undo-bar"><button id="btnUndo">ひとつ戻す</button><button id="btnRedo">やり直す</button></div>
     <details class="settings">
-      <summary>設定</summary>
+      <summary>詳しい設定・保存形式</summary>
+      <details class="quick-comments"><summary>よく使うコメントを登録する</summary><div class="presets" id="presets"></div></details>
       <div class="set-grid">
         <label for="setOpacity">コメントの不透明度</label><input type="range" id="setOpacity" min="0.2" max="1" step="0.05">
         <label for="setPause">コメント入力中は一時停止</label><input type="checkbox" id="setPause">
@@ -132,33 +148,11 @@
     </div>
     <div class="pane" id="paneHistory" hidden>
       <div class="side-head">
-        <div class="side-title">変更履歴<span id="histCount"></span></div>
+        <div class="side-title">編集の記録<span id="histCount"></span></div>
         <button id="histConflicts" class="warn" hidden></button>
       </div>
       <p class="muted hist-note" id="histNote"></p>
       <div class="hist" id="histList"></div>
-    </div>
-    <div class="pane" id="paneVim" hidden>
-      <div class="vim-head">
-        <span class="muted">:w で反映 · :q で閉じる · :help で一覧</span>
-        <span class="spacer"></span>
-        <button data-k="<Esc>" title="ノーマルモードに戻る (Esc)">Esc</button>
-        <button data-ex="w" title="バッファをコメントに反映 (:w)">反映 :w</button>
-        <button data-ex="e!" title="コメントから読み直し (:e!)">読み直し :e!</button>
-        <button data-ex="help" title="ヘルプ (:help)">?</button>
-      </div>
-      <div class="vim" id="vim">
-        <div class="vim-screen" id="vimScreen"></div>
-        <div class="vim-status" id="vimStatus"></div>
-        <div class="vim-cmd" id="vimCmd"></div>
-        <div class="vim-more" id="vimMore" hidden></div>
-        <textarea class="vim-input" id="vimInput" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Vim 入力"></textarea>
-      </div>
-      <div class="vim-keys" id="vimKeys">
-        <button data-k="<Esc>">Esc</button><button data-k="ctrl" id="vimCtrl">Ctrl</button><button data-k="<Tab>">Tab</button>
-        <button data-k=":">:</button><button data-k="/">/</button><button data-k="<Left>">←</button><button data-k="<Down>">↓</button>
-        <button data-k="<Up>">↑</button><button data-k="<Right>">→</button><button data-k="u">u</button><button data-k="<C-r>">^R</button>
-      </div>
     </div>
   </aside>
 </main>
@@ -197,34 +191,36 @@
 <input type="file" id="fileMerge" accept=".json,.jsonl,.csv,.xml" multiple hidden>
 
 <dialog id="exportDlg">
-  <div class="dlg-head">コメ付き動画の書き出し</div>
+  <div class="dlg-head">コメント付き動画を保存</div>
   <div class="dlg-body">
     <div id="expForm" class="form-grid">
-      <label for="expMode">方式</label>
-      <select id="expMode">
-        <option value="fast">高速（バックグラウンドで処理）</option>
-        <option value="realtime">リアルタイム録画（互換モード）</option>
-      </select>
-      <label for="expContainer">形式</label>
+      <label for="expContainer">ファイルの種類</label>
       <select id="expContainer">
-        <option value="mp4">MP4 (.mp4)</option>
+        <option value="mp4">MP4（迷ったらこれ）</option>
         <option value="mov">QuickTime (.mov)</option>
         <option value="webm">WebM (.webm)</option>
         <option value="mkv">Matroska (.mkv)</option>
       </select>
-      <label for="expRes">解像度</label><select id="expRes"></select>
-      <label for="expFps">フレームレート</label>
-      <select id="expFps"><option value="0">動画に合わせる</option><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select>
-      <label for="expBitrate">ビットレート</label>
-      <select id="expBitrate"><option value="4">4 Mbps</option><option value="8" selected>8 Mbps</option><option value="16">16 Mbps</option><option value="30">30 Mbps</option></select>
-      <label>範囲</label>
+      <label for="expRes">画質</label><select id="expRes"></select>
+      <label>保存する範囲</label>
       <div class="inline"><input type="text" id="expStart" value="0:00"> 〜 <input type="text" id="expEnd" value=""></div>
       <label>音声</label>
       <div class="exp-audio">
         <label class="chk"><input type="checkbox" id="expAudio" checked> 音声を含める</label>
         <label class="chk" id="expMuteRow"><input type="checkbox" id="expMute" checked> 録画中はスピーカーから音を出さない</label>
       </div>
+      <details class="export-advanced"><summary>詳しい設定（そのままで使えます）</summary><div class="form-grid">
+      <label for="expMode">方式</label>
+      <select id="expMode">
+        <option value="fast">自動変換（おすすめ）</option>
+        <option value="realtime">再生しながら録画（自動変換できないとき）</option>
+      </select>
+      <label for="expFps">フレームレート</label>
+      <select id="expFps"><option value="0">動画に合わせる</option><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select>
+      <label for="expBitrate">ビットレート</label>
+      <select id="expBitrate"><option value="4">4 Mbps</option><option value="8" selected>8 Mbps</option><option value="16">16 Mbps</option><option value="30">30 Mbps</option></select>
       <label>出力</label><span id="expFormat" class="muted"></span>
+      </div></details>
     </div>
     <p class="muted" id="expNote" style="margin:12px 0 0"></p>
     <div id="expProgressBox" hidden>
@@ -236,7 +232,7 @@
     <button id="expClose">閉じる</button>
     <button id="expCancel" hidden>中止</button>
     <button id="expBg" hidden title="ダイアログを閉じて、ほかの作業をしながら書き出しを続けます">バックグラウンドで続行</button>
-    <button id="expStartBtn" class="primary">書き出し開始</button>
+    <button id="expStartBtn" class="primary">動画を作る</button>
   </div>
 </dialog>
 
@@ -245,18 +241,20 @@
   <div class="dlg-body">
     <div class="form-grid ed-grid">
       <label for="edText">本文</label><textarea id="edText" rows="3" placeholder="Enterで確定 / Shift+Enterで改行"></textarea>
-      <label for="edTime">開始時刻</label>
-      <div class="inline"><input id="edTime" type="text" inputmode="decimal" spellcheck="false" autocomplete="off"><button type="button" id="edNow">再生位置</button></div>
-      <label for="edDur">表示時間</label>
-      <div class="inline"><input id="edDur" type="number" min="0.1" step="0.1"> 秒 <span class="muted" id="edSpeed"></span></div>
+      <label for="edTime">表示する時間</label>
+      <div class="inline"><input id="edTime" type="text" inputmode="decimal" spellcheck="false" autocomplete="off"><button type="button" id="edNow">今の場面にする</button></div>
+      <label for="edDur">表示の長さ</label>
+      <div class="inline"><input id="edDur" type="number" min="0.1" step="0.1"> 秒 <span class="muted" id="edSpeed" hidden></span></div>
       <label for="edPos">位置</label>
-      <select id="edPos"><option value="naka">流れる (naka)</option><option value="ue">上固定 (ue)</option><option value="shita">下固定 (shita)</option></select>
-      <label for="edCmd">コマンド</label><input id="edCmd" type="text" spellcheck="false" autocomplete="off">
+      <select id="edPos"><option value="naka">横に流れる</option><option value="ue">上に固定</option><option value="shita">下に固定</option></select>
+      <label for="edSize">文字の大きさ</label><select id="edSize"><option value="medium">ふつう</option><option value="big">大きい</option><option value="small">小さい</option></select>
+      <label for="edColor">文字の色</label><select id="edColor"><option value="white">白</option><option value="red">赤</option><option value="pink">ピンク</option><option value="orange">オレンジ</option><option value="yellow">黄色</option><option value="green">緑</option><option value="cyan">水色</option><option value="blue">青</option><option value="purple">紫</option><option value="black">黒</option></select>
+      <input id="edCmd" type="hidden">
     </div>
   </div>
   <div class="dlg-foot">
     <button id="edDelete" class="danger">削除</button><span class="spacer"></span>
-    <button id="edCancel">キャンセル</button><button id="edOk" class="primary">OK</button>
+    <button id="edCancel">キャンセル</button><button id="edOk" class="primary">変更を反映</button>
   </div>
 </dialog>
 
@@ -301,14 +299,14 @@
 <dialog id="conflictDlg">
   <div class="dlg-head">ほかの人の変更と重なった変更</div>
   <div class="dlg-body">
-    <p class="muted" style="margin:0 0 10px">同じコメントを同時に変えたため、変更はまだ反映されていません（今はホストにある内容になっています）。「元の値」は変更を始めたときの内容です。コメントごとにどうするか選んでください。<br>「あとで」にすると、ほかの参加者の一覧にも出て、誰でも選べるようになります。</p>
+    <p class="muted" style="margin:0 0 10px">同じコメントを同時に変えたため、変更はまだ反映されていません（今は相手が変更した内容になっています）。「元の値」は変更を始めたときの内容です。コメントごとにどうするか選んでください。<br>「あとで」にすると、ほかの参加者の一覧にも出て、誰でも選べるようになります。</p>
     <div id="conflictList"></div>
   </div>
   <div class="dlg-foot"><button id="conflictLater">あとで</button><button id="conflictKeepAll">すべて今のままにする</button></div>
 </dialog>
 
 <dialog id="projectsDlg">
-  <div class="dlg-head">プロジェクト</div>
+  <div class="dlg-head">編集するグループ</div>
   <div class="dlg-body">
     <div id="projectsList" class="projects"></div>
     <p class="muted" style="margin:10px 0 0">「開く」はこのタブのまま切り替えます（動画・再生位置・タイムラインの表示はプロジェクトごとに覚えていて、戻ってくると元に戻します）。「新しいタブ」なら、ほかのプロジェクトや同じプロジェクトを並べて作業できます。</p>
@@ -320,8 +318,8 @@
   <form id="loginForm">
     <div class="dlg-head">ログイン</div>
     <div class="dlg-body">
-      <p class="muted" style="margin:0 0 10px">このホストに入るには、ホストの人から受け取ったワンタイムパスワードを入れてください（1回だけ使えます。一度入れば、このブラウザでは次から入れ直す必要はありません）。</p>
-      <input id="loginCode" class="login-code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="ワンタイムパスワード">
+      <p class="muted" style="margin:0 0 10px">主催者から届いた参加コードを入れてください。1回使うと、このブラウザーでは次から自動で参加できます。</p>
+      <input id="loginCode" class="login-code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="参加コード">
       <p id="loginErr" class="login-err"></p>
     </div>
     <div class="dlg-foot"><button id="loginOk" class="primary" type="submit">ログイン</button></div>
@@ -359,95 +357,58 @@
   <div class="dlg-foot"><button id="peersRename">表示名を変更</button><span class="spacer"></span><button id="peersClose" class="primary">閉じる</button></div>
 </dialog>
 
+<dialog id="shareDlg" aria-labelledby="shareTitle">
+  <div class="dlg-head" id="shareTitle">なにをしますか？</div>
+  <div class="dlg-body">
+    <div id="shareChooser" class="share-choices">
+      <button class="share-choice" data-share-view="video"><span class="choice-icon" aria-hidden="true">▶</span><span><strong>動画で見てもらう</strong><small>コメントが入った動画を作る</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="file"><span class="choice-icon" aria-hidden="true">↓</span><span><strong>コメントを渡す</strong><small>相手に渡すファイルを保存</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="import"><span class="choice-icon" aria-hidden="true">＋</span><span><strong>コメントを受け取る</strong><small>届いたファイルを開く・追加する</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="live"><span class="choice-icon" aria-hidden="true">◎</span><span><strong>一緒に編集する</strong><small>招待リンクで同じ部屋へ参加</small></span><span aria-hidden="true">›</span></button>
+    </div>
+    <button id="shareBack" class="share-back" hidden>‹ 選び直す</button>
+    <section class="share-card" data-share-panel="file" hidden>
+      <h3>コメントを渡す</h3><p>保存したファイルを、メールやチャットに添付して渡します。動画は含まれないので、相手も同じ動画を用意してください。</p>
+      <button id="btnShareDownload" class="primary">コメントファイルを保存</button>
+      <p class="muted">元のファイルは上書きしません。送信は自分で行います。</p>
+    </section>
+    <section class="share-card" data-share-panel="import" hidden>
+      <h3>コメントを受け取る</h3><p>いまのコメントも残すなら「追加する」を選びます。</p>
+      <div class="share-actions"><button id="btnMerge" class="primary">いまのコメントに追加する</button><button id="btnOpenComments">一覧を入れ替えて開く</button></div>
+    </section>
+    <section class="share-card" data-share-panel="video" hidden>
+      <h3>動画で見てもらう</h3><p>コメントを重ねた動画を作ります。相手は動画を開くだけで見られます。</p><button id="btnExport" class="primary">コメント付き動画を作る</button>
+    </section>
+    <section class="share-card" data-share-panel="live" hidden>
+      <h3>一緒に編集する</h3><p id="shareOnlineNote"></p><button id="btnCopyInvite" hidden>参加用リンクをコピー</button><button id="btnInviteAdmin" hidden>招待リンクを用意する</button>
+      <p id="inviteResult" class="muted" role="status"></p><textarea id="inviteFallback" readonly hidden aria-label="コピーする参加用リンク"></textarea>
+    </section>
+  </div><div class="dlg-foot"><button id="shareClose">閉じる</button></div>
+</dialog>
 <dialog id="connectionDlg" aria-labelledby="connectionTitle">
-  <div class="dlg-head" id="connectionTitle">共同編集について</div>
+  <div class="dlg-head" id="connectionTitle">オンラインで一緒に編集するには</div>
   <div class="dlg-body help">
-    <p>動画の編集・ファイル共有・書き出しは、KOME Studioだけで使えます。komenagareの起動や外部サービスへの送信は行いません。</p>
-    <p>リアルタイム共同編集だけは、接続先ホストが必要です。この版にはkomenagareのプロトコル4に対応するクライアントを含めています。</p>
-    <p>既存ホストの管理者がこのフォルダーを <code>--web</code> の配信元として指定した場合、そのホストから開いたKOME Studioで接続・衝突解決・変更履歴・プロジェクト切り替えが使えます。サーバー側コードの変更は不要です。</p>
-    <p>GitHub PagesやローカルHTMLから別ドメインのホストへ直接接続する方式ではありません。認証とブラウザーの同一オリジン制約を保つため、共同編集はホストが配信するURLから開いてください。</p>
-    <p class="muted">このリポジトリにホストプログラムは含めません。ホストを用意しない場合は「保存」「マージ」でコメントファイルを共有してください。</p>
-  </div>
-  <div class="dlg-foot"><button id="connectionClose" class="primary">閉じる</button></div>
+    <p>リアルタイムの共同編集は、主催者から届いた<strong>招待リンク</strong>を開いて参加します。全員が同じ動画を手元に用意してください。</p>
+    <p>招待リンクがない場合は「共有する」からコメントファイルを渡せます。こちらは準備不要です。</p>
+    <p>このページだけではオンラインの編集部屋は作れません。主催者側の準備が必要です。参加者がコマンドを入力したり、サーバーを起動したりする必要はありません。</p>
+    <p>主催者側の接続先の準備方法は同梱のREADMEに分けています。このアプリが勝手に外部サービスを起動することはありません。</p>
+  </div><div class="dlg-foot"><button id="connectionClose" class="primary">閉じる</button></div>
+</dialog>
+<dialog id="helpDlg" aria-labelledby="helpTitle">
+  <div class="dlg-head" id="helpTitle">はじめての使い方</div>
+  <div class="dlg-body help">
+    <h4>1. 動画を開く</h4><p>「動画を開く」から手元の動画を選びます。動画はこのアプリにアップロードされません。</p>
+    <h4>2. 好きな場面でコメント</h4><p>動画を再生して、コメントしたい場面で入力欄に書きます。入力を始めると一時停止します。「コメントする」でその場面に追加できます。</p>
+    <p>色や大きさは入力欄の上にある選択肢で選べます。何も変えず、そのままでも使えます。</p>
+    <h4>直したい・間違えたとき</h4><p>一覧の「編集」で本文や表示時間を直します。削除も編集画面からできます。直前の操作は「ひとつ戻す」で取り消せます。</p>
+    <h4>3. 保存して渡す</h4><p>「コメントを保存」でファイルを残します。ブラウザーの作業メモとは別に、ファイルも保存してください。</p>
+    <p>「共有する」では、ファイルを渡す・届いたコメントを追加する・コメント入り動画を作る、の3つから選べます。別々に作業したファイルもまとめられます。</p>
+    <h4>同時に編集したいとき</h4><p>主催者の招待リンクを開いて参加します。招待リンクがないときは、まずファイルを渡す方法を使ってください。同じコメントを同時に直した場合は、画面でどちらを残すか選べます。</p>
+    <h4>コメントが見えないとき</h4><p>そのコメントの時間まで動画を動かしてください。別の動画では時間が合わないため、共同編集では全員が同じ動画を使います。</p>
+    <h4>細かく調整したいとき</h4><p>「その他」→「細かく時間を調整する」で時間の調整画面を開けます。普段は使わなくてもかまいません。</p>
+  </div><div class="dlg-foot"><button id="helpClose" class="primary">閉じる</button></div>
 </dialog>
 
-<dialog id="helpDlg">
-  <div class="dlg-head">使い方</div>
-  <div class="dlg-body help">
-    <h4>KOME Studio互換版</h4>
-    <p>旧KOMEの <code>{time, content}</code> 配列と、komenagareのJSON / JSONL / CSV / XMLを読み込めます。通常のJSON保存はkomenagare形式です。旧版には設定の「旧KOME形式でダウンロード」を使ってください。</p>
-    <p>時刻は保持しますが、流れるコメントはkomenagareの規則に合わせて指定時刻の1秒前から出現します。speed / dur は @秒数へ変換します。等幅・太さ・斜体・個別透明度など、未対応の旧独自装飾はコマンド文字列として残り、読み込み時に通知します。旧版と同じ見た目が必要な場合は旧版を使ってください。</p>
-    <p>作業復元用データをブラウザーに保存します。正式なバックアップは「保存」で残してください。動画は保存・送信しません。</p>
-    <p>編集エンジンはApache-2.0のkomenagareを利用しています。詳細は同梱のNOTICEとLICENSEを参照してください。</p>
-    <h4>基本の流れ（複数人で作る場合）</h4>
-    <ol style="margin:0;padding-left:20px">
-      <li>全員が同じ動画ファイルを手元に用意し、「動画を開く」で読み込む</li>
-      <li>コメントファイル（.json）を開く。最初の人は新規のままでOK</li>
-      <li>コメントを書き込み、「保存」でファイルに書き出す（開いたファイルへ追記されます）</li>
-      <li>ファイルを共有し、受け取った側は「マージ」で自分のコメントと統合</li>
-    </ol>
-    <p class="muted">マージは「時刻・コマンド・本文」が完全に同じものを重複とみなす和集合です。同じ順序規則で並べ直すので、マージ後は誰の環境でもほぼ同じ配置で流れます（フォントの違いで多少ずれることはあります）。Chrome / Edge では開いたファイルに直接上書き保存でき、保存のたびにファイル側の新しいコメントも取り込みます（Dropbox などの共有フォルダ上のファイルを複数人で開いても失われにくくなっています）。</p>
-
-    <h4>コマンド（ニコニコ動画準拠）</h4>
-    <table>
-      <tr><td>位置</td><td><code>naka</code>（流れる・既定） <code>ue</code>（上固定） <code>shita</code>（下固定）</td></tr>
-      <tr><td>サイズ</td><td><code>big</code> <code>medium</code>（既定） <code>small</code></td></tr>
-      <tr><td>色</td><td><code>white</code> <code>red</code> <code>pink</code> <code>orange</code> <code>yellow</code> <code>green</code> <code>cyan</code> <code>blue</code> <code>purple</code> <code>black</code><br>
-        プレミアム色 <code>white2</code> <code>red2</code> … <code>black2</code>（<code>niconicowhite</code> <code>truered</code> 等の別名も可）、カラーコード <code>#RRGGBB</code></td></tr>
-      <tr><td>フォント</td><td><code>defont</code>（既定） <code>gothic</code> <code>mincho</code></td></tr>
-      <tr><td>表示時間</td><td><code>@秒数</code>（例 <code>@10</code>）</td></tr>
-      <tr><td>その他</td><td><code>invisible</code>（非表示） <code>full</code>（上下コメの縮小幅を画面全体に） <code>ender</code>（改行リサイズ無効） <code>_live</code>（半透明）</td></tr>
-    </table>
-    <p class="muted">同じ種類のコマンドが複数ある場合は先に書いたものが優先されます。改行の多いコメントは自動で縮小され（big 3行・medium 5行・small 7行以上）、上下固定で画面からはみ出すものは幅に合わせて縮小されます。表示しきれないコメントはランダムな高さに重なって表示されます。</p>
-
-    <h4>ショートカット</h4>
-    <table>
-      <tr><td>Space / K</td><td>再生・一時停止</td></tr>
-      <tr><td>← / →</td><td>5秒戻る / 進む（Shift で1秒）</td></tr>
-      <tr><td>↑ / ↓</td><td>音量</td></tr>
-      <tr><td>Enter</td><td>コメント入力欄へ移動</td></tr>
-      <tr><td>C / F / M</td><td>コメント表示切替 / フルスクリーン / ミュート</td></tr>
-      <tr><td>Ctrl+S</td><td>保存（Shift で名前を付けて保存）</td></tr>
-      <tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>コメント編集の取り消し / やり直し</td></tr>
-    </table>
-
-    <h4>タイムライン</h4>
-    <table>
-      <tr><td>全体表示（細い帯）</td><td>黄色い枠をドラッグで表示位置を移動、枠の左右端をドラッグで拡大縮小。枠の外をタップするとそこへジャンプ</td></tr>
-      <tr><td>コメントの移動</td><td>コメントをドラッグ（スマホは一度タップして選択してからドラッグ）</td></tr>
-      <tr><td>開始・終了の調整</td><td>選択したコメントの左端／右端をドラッグ。表示時間が変わり、流れるコメントはその分速さが変わります（<code>@秒数</code> が自動で付きます）</td></tr>
-      <tr><td>作成・本文の変更</td><td>「＋ 新規」、空いている所をダブルクリック（ダブルタップ）で作成。コメントをダブルクリックか Enter で本文や時刻を編集</td></tr>
-      <tr><td>拡大縮小・移動</td><td>Ctrl+ホイール・ピンチ・＋／− で拡大縮小、ホイール・空き部分のドラッグで移動。上下は右のスクロールバー、Shift+ホイール、左の見出し列でのホイールで。ホイールの向きは ⚙ で変更でき、トラックパッドや Magic Mouse では360°自由に動かせます。目盛りをドラッグで再生位置</td></tr>
-      <tr><td>高さ</td><td>タイムラインの上端をドラッグ（ダブルクリックで元に戻す）。縦向きのスマホでは「タイムライン／リスト／Vim／履歴」のタブの上のつまみをドラッグすると動画の大きさが変わり、残りが下の画面になります</td></tr>
-      <tr><td>追従</td><td>「⇥ 追従」がオンのとき、再生位置が中央まで来るとそこで止まり、タイムラインの方が流れます</td></tr>
-      <tr><td>キー（タイムライン選択中）</td><td><code>Delete</code> 削除　<code>Enter</code> 編集　<code>,</code> <code>.</code> 0.1秒ずらす（Shift で1秒）　<code>N</code> スナップ　<code>Shift+Z</code> 全体</td></tr>
-    </table>
-
-    <h4>コメントプリセット</h4>
-    <p class="muted" style="margin:0">入力欄の下の「＋ プリセットを登録」（登録後は「⚙ 編集」）から、よく使うコメント（<code>888</code> など）を好きなだけ登録できます。ボタンを押すと再生位置にすぐ投稿、Shift+クリックで入力欄に挿入。先頭10個はキー <code>1</code>〜<code>9</code>, <code>0</code> でも投稿できます。</p>
-
-    <h4>書き出し</h4>
-    <p class="muted" style="margin:0">「高速」は動画ファイルを直接デコード・エンコードするので再生より速く、処理中も編集やタブの切り替えができます（「バックグラウンドで続行」でダイアログを閉じても続きます）。形式は MP4 / MOV / WebM / MKV。対応していない環境や動画では「リアルタイム録画」を使ってください。</p>
-
-    <h4>Vim エディタ</h4>
-    <p class="muted" style="margin:0">コメントを1行1件のテキスト（<code>01:23.45 ue red | 本文</code>）として Vim のキー操作で編集できます。時刻やコマンドを書き換えて <code>:w</code> で反映、<code>:q</code> で閉じます。<code>:now</code> で再生位置に行を追加、<code>:seek</code> でカーソル行の時刻へ移動。対応キーの一覧はエディタ内で <code>:help</code>。スマホでは画面下のキーバーで Esc や Ctrl を入力できます（Esc は上の :w の隣にもあります）。</p>
-
-    <h4>変更履歴</h4>
-    <p class="muted" style="margin:0">右の「変更履歴」タブで、コメントの追加・変更・削除を新しい順に見られます。「取り消す」でその変更を打ち消す変更を加え（その後に同じコメントが変わっていれば止まります）、「移動」でそのコメントの時刻へ移ります。共同編集中は全員の変更が出ます。</p>
-
-    <h4>みんなで編集する</h4>
-    <p class="muted" style="margin:0"><code>komenagare</code> コマンドでホストしたページを開くと、ほかの参加者と同じコメントを同時に編集できます（右上に「共同編集」と表示されます）。変更はホストのフォルダに保存され、git の履歴に残ります。同じコメントの同じ項目を同時に変えたときは先に届いた方が残り、「⚠ 衝突」から自分の変更にする・相手のままにする・両方残すを選べます。「あとで」にした衝突はほかの参加者にも出て、誰でも選べます。接続が切れても編集を続けられ、つながり直したときに送られます。</p>
-    <p class="muted" style="margin:6px 0 0">ホストが複数のプロジェクトを共有しているときは、右上の「📁」からプロジェクトを切り替えたり、新しいタブで開いたりできます（同じプロジェクトを複数のタブで開いてもかまいません）。ホストがワンタイムパスワードを使っているときは、最初に受け取ったワンタイムパスワードでログインします。</p>
-    <p class="muted" style="margin:6px 0 0">ローカルネットワークの外から使うときは、ホストを <code>komenagare --otp --tunnel tailscale</code>（または <code>cloudflare</code> / <code>ngrok</code>）で起動するか、自分で用意した URL を <code>--public-url</code> で渡します。詳しくは README を見てください。</p>
-    <p class="muted" style="margin:6px 0 0">ほかの参加者の再生位置・選んでいるコメント・マウスカーソルは、その人の色でシークバー・タイムライン・リスト・プレビューに薄く出ます。右上の「共同編集」を押すと参加者の一覧が開き、表示名の変更や、選んだ人の再生位置とタイムラインの表示を「追いかける」ことができます（自分でシークやスクロールをするとやめます）。</p>
-
-    <h4>ファイル形式</h4>
-    <p class="muted" style="margin:0">JSON：<code>{"t": 秒, "cmd": "コマンド", "text": "本文", "id": "UUID"}</code> の配列（<code>comments</code> キー内）。CSV：<code>time,command,text,id</code> の4列。<code>id</code> は各コメントを見分ける番号で、省略すると読み込み時に新しく付きます。読み込みはニコニコのコメントXML（<code>&lt;chat vpos mail&gt;</code>）やコメントJSONにも対応しています。</p>
-  </div>
-  <div class="dlg-foot"><button id="helpClose" class="primary">閉じる</button></div>
-</dialog>
-
-<script src="js/vim-engine.js"></script>
 <script src="js/comment-store.js"></script>
 <script src="js/comment-render.js"></script>
 <script src="js/export-core.js"></script>

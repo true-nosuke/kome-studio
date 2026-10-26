@@ -13,10 +13,16 @@ const SIDE_W = 400; // 右のパネルの既定の幅（ドラッグで変えら
 const TL_H = 270; // タイムラインの既定の高さ（PC）
 const M_VIDEO = 0.32; // 縦向きのスマホで、動画の高さが画面の高さに占める割合の既定（タイムラインの上端をドラッグして変える）
 const settings = Object.assign(
-  { show:true, opacity:1, pauseOnInput:false, mineBorder:true, autosave:true, saveFormat:'json', volume:1, muted:false,
-    timeline:true, tlHeight:TL_H, mVideo:M_VIDEO, sideWidth:SIDE_W, sidePane:'list', mobilePane:'timeline', tlSnap:true, tlFollow:true, presets:[], wheelMouse:'time', wheelPad:'auto', letterbox:'#000000' },
+  { show:true, opacity:1, pauseOnInput:true, mineBorder:true, autosave:true, saveFormat:'json', volume:1, muted:false,
+    timeline:false, tlHeight:TL_H, mVideo:M_VIDEO, sideWidth:SIDE_W, sidePane:'list', mobilePane:'list', tlSnap:true, tlFollow:true, presets:[], wheelMouse:'time', wheelPad:'auto', letterbox:'#000000' },
   (() => { try { return JSON.parse(localStorage.getItem('kome-studio.settings') || '{}'); } catch { return {}; } })()
 );
+// One-time migration out of removed/advanced panes; keep existing comments intact.
+if (settings.simpleUIVersion !== 1){
+  Object.assign(settings,{simpleUIVersion:1,timeline:false,sidePane:'list',mobilePane:'list',pauseOnInput:true});
+}
+if (!['list','history'].includes(settings.sidePane)) settings.sidePane = 'list';
+if (!['list','history','timeline'].includes(settings.mobilePane)) settings.mobilePane = 'list';
 function saveSettings(){ try { localStorage.setItem('kome-studio.settings', JSON.stringify(settings)); } catch {} }
 
 /* ---------- 状態 ---------- */
@@ -205,6 +211,7 @@ function addComments(items, opts = {}){
 }
 function commentsChanged(){
   recoverySaveSoon();
+  updateBeginnerGuide();
   state.version++;
   if (TL.sel.size) for (const id of [...TL.sel]) if (!store.has(id)) TL.sel.delete(id);
   relayout();
@@ -213,7 +220,6 @@ function commentsChanged(){
   $('#commentCount').textContent = `コメント ${state.comments.length}`;
   state.needsDraw = true;
   tlRelane();
-  vimCommentsChanged();
 }
 // 共同編集中はホストが保存するので「未保存」にしない
 function markDirty(){ if (state.collab) return; state.dirty = true; updateStatus(); }
@@ -332,7 +338,6 @@ function loop(){
     updateTimeUI(t);
   }
   tlFrame(playing, t);
-  vimFrame(playing, t);
   presenceFrame();
 }
 
@@ -349,7 +354,7 @@ const ICON = {
   cmtOff:'<svg viewBox="0 0 24 24"><path d="M4 4h16v12H8.5L4 20zm3 4v2h10V8zm0 3v2h7v-2z" fill-rule="evenodd"/><path d="M3 3l18 18" stroke="#eee" stroke-width="2"/></svg>',
 };
 $('#btnFull').innerHTML = ICON.full;
-function updatePlayIcon(){ $('#btnPlay').innerHTML = video.paused ? ICON.play : ICON.pause; }
+function updatePlayIcon(){ $('#btnPlay').innerHTML = video.paused ? ICON.play : ICON.pause; $('#btnPlay').setAttribute('aria-label',video.paused?'再生':'一時停止');$('#stagePlay').hidden=!state.videoLoaded || !video.paused; }
 function updateVolIcon(){ $('#btnMute').innerHTML = (video.muted || video.volume === 0) ? ICON.mute : ICON.vol; }
 function updateCommentIcon(){
   const b = $('#btnToggleComments');
@@ -454,6 +459,8 @@ function updateTimeUI(t = video.currentTime){
   seekFill.style.width = (r * 100) + '%';
   seekKnob.style.left = (r * 100) + '%';
   $('#timeText').textContent = `${fmt(t)} / ${fmt(d)}`;
+  $('#postAt').textContent=fmtPrecise(t);
+  $('#btnPost').title=fmtPrecise(t)+' の場面にコメントを追加';
   highlightCurrent(t);
 }
 
@@ -596,97 +603,23 @@ $('#prSave').onclick = () => {
 };
 $('#prList').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); $('#prSave').click(); } });
 
-/* ---------- コマンドパレット ---------- */
-const PALETTE = [
-  { label:'位置', tokens:['naka','ue','shita'] },
-  { label:'サイズ', tokens:['medium','big','small'] },
-  { label:'色', tokens:['white','red','pink','orange','yellow','green','cyan','blue','purple','black'] },
-  { label:'色2', tokens:['white2','red2','pink2','orange2','yellow2','green2','cyan2','blue2','purple2','black2'] },
-  { label:'フォント', tokens:['defont','gothic','mincho'] },
-  { label:'特殊', tokens:['invisible','full','ender','_live'] },
-];
-const DEFAULT_TOKEN = { pos:'naka', size:'medium', color:'white', font:'defont' };
-const palette = $('#palette');
-(function buildPalette(){
-  for (const grp of PALETTE){
-    const lab = document.createElement('div'); lab.className = 'pl'; lab.textContent = grp.label;
-    const chips = document.createElement('div'); chips.className = 'chips';
-    for (const tok of grp.tokens){
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.tok = tok;
-      if (COLOR_TABLE[tok]){
-        b.classList.add('color');
-        const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = COLOR_TABLE[tok];
-        b.append(sw);
-      }
-      if (FONTS[tok]) b.style.fontFamily = FONTS[tok];
-      b.append(tok);
-      b.onclick = () => toggleToken(tok);
-      chips.append(b);
-    }
-    if (grp.label === '色2'){
-      const picker = document.createElement('input'); picker.type = 'color'; picker.title = '任意の色 (#RRGGBB)';
-      picker.oninput = () => setGroupToken('color', picker.value.toUpperCase());
-      chips.append(picker);
-    }
-    if (grp.label === '特殊'){
-      const num = document.createElement('input'); num.type = 'number'; num.min = '1'; num.max = '600'; num.step = '1';
-      num.placeholder = '@秒'; num.title = '表示時間（秒）'; num.id = 'longInput';
-      num.oninput = () => setGroupToken('long', +num.value > 0 ? '@' + (+num.value) : null);
-      chips.append(num);
-    }
-    palette.append(lab, chips);
-  }
-})();
-function cmdTokens(){ return cmdInput.value.trim().split(/\s+/).filter(Boolean); }
-function setCmd(toks){ cmdInput.value = toks.join(' '); syncPalette(); }
-function setGroupToken(group, tok){
-  const toks = cmdTokens().filter(x => tokGroup(x) !== group);
-  if (tok) toks.push(tok);
-  setCmd(toks);
-}
-function toggleToken(tok){
-  const g = tokGroup(tok);
-  let toks = cmdTokens();
-  const had = toks.some(x => x.toLowerCase() === tok);
-  if (g.startsWith('flag:')) toks = had ? toks.filter(x => x.toLowerCase() !== tok) : [...toks, tok];
-  else { toks = toks.filter(x => tokGroup(x) !== g); if (!had && DEFAULT_TOKEN[g] !== tok) toks.push(tok); }
-  setCmd(toks);
-}
+/* ---------- Plain-language appearance controls (no typed commands) ---------- */
 function syncPalette(){
-  const toks = cmdTokens().map(x => x.toLowerCase());
-  const groups = new Set(toks.map(tokGroup));
-  for (const b of palette.querySelectorAll('.chip')){
-    const tok = b.dataset.tok, g = tokGroup(tok);
-    b.classList.toggle('active', toks.includes(tok) || (!groups.has(g) && DEFAULT_TOKEN[g] === tok));
+  const o = parseCmd(normCmd(cmdInput.value));
+  const value = {pos:o.pos,size:o.size,color:Object.keys(COLOR_TABLE).find(k => COLOR_TABLE[k].toUpperCase() === o.color.toUpperCase()) || o.color};
+  for (const el of document.querySelectorAll('[data-style-group]')) {
+    const val = value[el.dataset.styleGroup];
+    if (![...el.options].some(o => o.value === val)){ const opt = new Option('読み込んだ色',val);opt.dataset.imported='1';el.add(opt); }
+    el.value=val;
   }
-  const lt = toks.find(x => tokGroup(x) === 'long');
-  const li = $('#longInput'); if (li && document.activeElement !== li) li.value = lt ? lt.slice(1) : '';
 }
-cmdInput.addEventListener('input', syncPalette);
-// コマンドパレットは画面サイズに関係なく見えるよう、入力欄の上（入らなければ下）に浮かせて表示する
-function placePalette(){
-  if (palette.hidden) return;
-  const bar = $('.comment-bar').getBoundingClientRect();
-  const vw = document.documentElement.clientWidth, vh = window.innerHeight;
-  const w = Math.min(Math.max(bar.width, 340), vw - 16);
-  Object.assign(palette.style, { width: w + 'px', left: Math.max(8, Math.min(bar.left, vw - w - 8)) + 'px', top: '', bottom: '', maxHeight: '' });
-  const need = palette.scrollHeight;
-  const above = bar.top - 8, below = vh - bar.bottom - 8;
-  if (need <= above || above >= below){ palette.style.bottom = (vh - bar.top + 4) + 'px'; palette.style.maxHeight = Math.max(120, above) + 'px'; }
-  else { palette.style.top = (bar.bottom + 4) + 'px'; palette.style.maxHeight = Math.max(120, below) + 'px'; }
+function setGroupToken(group,tok){
+  const toks=normCmd(cmdInput.value).split(' ').filter(t=>t && tokGroup(t)!==group);
+  if(tok)toks.push(tok);
+  cmdInput.value=toks.join(' ');syncPalette();
 }
-function setPalette(open){
-  palette.hidden = !open;
-  $('#btnPalette').classList.toggle('on', open);
-  if (open){ syncPalette(); placePalette(); }
-}
-$('#btnPalette').onclick = () => setPalette(palette.hidden);
-for (const ev of ['resize', 'scroll']) window.addEventListener(ev, placePalette, { passive:true, capture: ev === 'scroll' });
-document.addEventListener('fullscreenchange', () => requestAnimationFrame(placePalette));
-document.addEventListener('pointerdown', (e) => {
-  if (!palette.hidden && !palette.contains(e.target) && !e.target.closest('#btnPalette, #cmdInput')) setPalette(false);
-});
-palette.addEventListener('keydown', (e) => { if (e.key === 'Escape'){ setPalette(false); $('#btnPalette').focus(); } });
+for(const el of document.querySelectorAll('[data-style-group]'))el.onchange=()=>setGroupToken(el.dataset.styleGroup,el.value);
+syncPalette();
 
 /* =====================================================================
    コメントリスト
@@ -705,13 +638,13 @@ function renderList(){
     const row = document.createElement('div');
     row.className = 'row' + (c.mine ? ' mine' : '') + (parseCmd(c.cmd).invisible ? ' inv' : '');
     row.dataset.i = i;
-    const rt = document.createElement('span'); rt.className = 'rt'; rt.textContent = fmtList(c.t);
-    const rc = document.createElement('span'); rc.className = 'rc'; rc.textContent = c.text;
+    const rt = document.createElement('button'); rt.type='button';rt.className = 'rt'; rt.textContent = fmtList(c.t);rt.title='この場面へ移動';rt.setAttribute('aria-label',fmtPrecise(c.t)+' の場面へ移動');
+    const rc = document.createElement('button');rc.type='button';rc.className = 'rc'; rc.textContent = c.text;rc.setAttribute('aria-label','コメントを編集: '+c.text);
     const rm = document.createElement('span'); rm.className = 'rm'; rm.title = c.cmd;
     const o = parseCmd(c.cmd);
     if (o.color !== '#FFFFFF'){ const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = o.color; rm.append(sw); }
-    rm.append(c.cmd);
-    const del = document.createElement('button'); del.className = 'del'; del.title = '削除'; del.textContent = '×';
+    rm.append(({naka:'流れる',ue:'上',shita:'下'})[o.pos]);
+    const del = document.createElement('button'); del.className = 'del'; del.title = 'このコメントを編集'; del.textContent = '編集';
     row.append(rt, rc, rm, del);
     frag.append(row);
     listRowOf.set(c.id, row);
@@ -733,7 +666,7 @@ $('#search').addEventListener('input', renderList);
 list.addEventListener('click', (e) => {
   const row = e.target.closest('.row'); if (!row) return;
   const c = listItems[+row.dataset.i]; if (!c) return;
-  if (e.target.closest('.del')){ deleteComment(c); return; }
+  if (e.target.closest('.del,.rc')){ openEditDialog(c); return; }
   seekTo(parseCmd(c.cmd).pos === 'naka' ? c.t - NAKA_LEAD : c.t);
   TL.sel = new Set([c.id]); tlSelChanged(); tlEnsureVisible(c);
 });
@@ -757,7 +690,7 @@ function highlightCurrent(t){
 function deleteComment(c){
   if (!store.has(c.id)) return;
   const ch = commitOps([deleteOp(c)]);
-  if (ch) toast('コメントを削除しました', { action:{ label:'元に戻す', fn:() => revertChange(ch) } });
+  if (ch) toast('コメントを削除しました', { action:{ label:'ひとつ戻す', fn:() => revertChange(ch) } });
 }
 
 /* =====================================================================
@@ -805,7 +738,7 @@ function parseCommentText(text, name = ''){
   }
   if (/\.(json|jsonl)$/i.test(name) || head.startsWith('{') || head.startsWith('[')){
     const decoded = KomeCompat.decodeJSON(text, name);
-    if (decoded.warnings.length) toast('旧KOME独自の装飾を保持しましたが、この画面・komenagareでは再現されません: ' + decoded.warnings.join(', '), { timeout:10000 });
+    if (decoded.warnings.length) toast('一部の文字の見た目はこの画面では再現できません。元の情報は保存されます。必要なら旧版で確認してください。', { timeout:10000 });
     const parsed = decoded.items.map(it => {
       let t = it.t ?? it.time ?? (it.vposMs != null ? it.vposMs / 1000 : (it.vpos != null ? it.vpos / 100 : null));
       if (typeof t === 'string') t = parseTime(t);
@@ -846,13 +779,14 @@ function defaultFileName(ext){
 }
 function updateStatus(){
   $('#videoStatus').textContent = '動画: ' + (state.videoName || 'なし');
+  updateBeginnerGuide();
   const fs = $('#fileStatus');
   fs.replaceChildren();
   const name = document.createElement('span');
-  name.textContent = 'コメント: ' + (state.collab ? '共同編集（ホストに保存）' : (state.fileName || '新規'));
+  name.textContent = 'コメント: ' + (state.collab ? '共同編集中（自動で共有）' : (state.fileName || '新規'));
   fs.append(name, ' ');
   const st = document.createElement('span');
-  if (state.dirty){ st.className = 'dirty'; st.textContent = '● 未保存'; }
+  if (state.dirty){ st.className = 'dirty'; st.textContent = '● ファイルに保存してください'; }
   else if (state.fileName){ st.className = 'clean'; st.textContent = '✓ 保存済み'; }
   fs.append(st);
   if (state.fileHandle && settings.autosave){ fs.append(' · 自動保存'); }
@@ -951,7 +885,6 @@ function loadReplace(text, name, handle){
   markClean();
   if (items.legacy || !/\.(json|jsonl|csv|xml)$/i.test(name)) state.dirty = r.added > 0, updateStatus();
   toast(`${name} から ${r.added} 件のコメントを読み込みました` + (r.dup ? `（重複 ${r.dup} 件を除外）` : ''));
-  vimReload(true);
 }
 async function mergeFiles(files){
   let ok = 0;
@@ -970,6 +903,7 @@ async function mergeFiles(files){
 
 const COMMENT_TYPES = [{ description:'コメントファイル', accept:{ 'application/json':['.json','.jsonl'], 'text/csv':['.csv'], 'text/xml':['.xml'] } }];
 $('#btnOpenComments').onclick = async () => {
+  $('#shareDlg').close();
   if (state.dirty && state.comments.length &&
       !confirm('未保存のコメントがあります。破棄して別のファイルを開きますか？\n（今のコメントに追加したい場合は「マージ」を使ってください）')) return;
   if (hasFS){
@@ -985,6 +919,7 @@ $('#fileComments').onchange = async (e) => {
   if (f) loadReplace(await f.text(), f.name, null);
 };
 $('#btnMerge').onclick = async () => {
+  $('#shareDlg').close();
   if (hasFS){
     try {
       const hs = await window.showOpenFilePicker({ types: COMMENT_TYPES, multiple:true });
@@ -994,7 +929,7 @@ $('#btnMerge').onclick = async () => {
 };
 $('#fileMerge').onchange = (e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) mergeFiles(fs); };
 $('#btnSave').onclick = () => doSave();
-$('#btnSaveAs').onclick = () => doSave({ saveAs:true });
+$('#btnSaveAs').onclick = () => { $('.more-tools').open=false;doSave({ saveAs:true }); };
 $('#btnOpenVideo').onclick = () => $('#fileVideo').click();
 $('#fileVideo').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) loadVideo(f); };
 
@@ -1089,7 +1024,7 @@ function expSetBusy(on){
   $('#expForm').style.opacity = on ? .5 : 1;
   const b = $('#btnExport');
   b.classList.toggle('busy', on && exportState.mode === 'fast');
-  if (!on) b.textContent = '⏺ コメ付き書き出し';
+  if (!on) b.textContent = 'コメント付き動画を作る';
 }
 function expProgress(p, text){
   exportState.progress = p;
@@ -1108,15 +1043,15 @@ function expSyncForm(){
   let ok = true, out;
   if (fast){
     out = `${CONTAINERS[cont.value].label}（コーデックは対応するものを自動で選択）`;
-    $('#expNote').textContent = '動画ファイルを直接読み込んで変換するので、再生するより速く書き出せます。'
-      + (fastExportInWorker() ? '処理はバックグラウンドで行うため、書き出し中もほかの作業やタブの切り替えができます。' : 'ファイルを直接開いているため、このタブで処理します（書き出し中はタブを開いたままにしてください）。')
-      + 'フレームレートを動画より高くすると、映像は元のコマのまま、コメントだけが指定したフレームレートで滑らかに動きます。';
+    $('#expNote').textContent = 'コメントを重ねた動画ファイルを作ります。設定はそのままでも使えます。'
+      + (fastExportInWorker() ? '作成中もほかの作業ができます。' : '終わるまでこのタブを開いたままにしてください。')
+      + '完成した動画はダウンロードして、相手に渡せます。';
   } else {
     const mime = pickMime(cont.value);
     const canCapture = typeof HTMLCanvasElement.prototype.captureStream === 'function';
     ok = !!(mime && canCapture);
     out = ok ? mime : 'このブラウザはこの形式での録画に対応していません';
-    $('#expNote').textContent = '動画を実際に等倍で再生しながら録画するため、動画の長さと同じ時間がかかります。録画中はこのタブを前面に表示したままにしてください。パソコンの処理が追いつかないと、指定したフレームレートより粗くなることがあります。高速書き出しが使えない動画や環境向けです。';
+    $('#expNote').textContent = '動画を再生しながら保存するため、動画の長さと同じ時間がかかります。終わるまでこの画面を表示したままにしてください。';
   }
   $('#expFormat').textContent = out;
   $('#expStartBtn').disabled = !ok;
@@ -1124,6 +1059,7 @@ function expSyncForm(){
 $('#expMode').onchange = expSyncForm;
 $('#expContainer').onchange = expSyncForm;
 $('#btnExport').onclick = () => {
+  $('#shareDlg').close();
   if (exportState.running){ exportDlg.showModal(); return; }
   if (!state.videoLoaded){ toast('先に動画を開いてください'); return; }
   const vh = video.videoHeight || 720;
@@ -1499,6 +1435,8 @@ function revertChange(ch){
 function updateUndoUI(){
   $('#tlUndo').disabled = !history.undo.length;
   $('#tlRedo').disabled = !history.redo.length;
+  $('#btnUndo').disabled = !history.undo.length;
+  $('#btnRedo').disabled = !history.redo.length;
 }
 
 /* =====================================================================
@@ -1889,7 +1827,7 @@ function deleteSelected(){
   TL.sel.clear();
   const ch = commitOps(list.map(deleteOp));
   tlSelChanged();
-  if (ch) toast(`${list.length} 件のコメントを削除しました`, { action:{ label:'元に戻す', fn:() => revertChange(ch) } });
+  if (ch) toast(`${list.length} 件のコメントを削除しました`, { action:{ label:'ひとつ戻す', fn:() => revertChange(ch) } });
 }
 function nudgeSelected(dt){
   const list = tlSelected();
@@ -2225,7 +2163,7 @@ $('#tlZoom').oninput = (e) => {
   tlZoomAt(b.minPps * Math.pow(b.maxPps / b.minPps, e.target.value / 1000) / TL.pps, tlZoomCenterX());
 };
 // 高さを変えるつまみ（ダブルクリックで元に戻す）。PC ではタイムラインの上端でタイムラインの高さを、
-// 縦向きのスマホではタブの上で動画の大きさを変えて、下の画面（タイムライン・リスト・Vim・履歴）がその残りに広がる
+// 縦向きのスマホではタブの上で動画の大きさを変えて、下の画面（時間の調整・コメント一覧・編集の記録）がその残りに広がる
 for (const h of [$('#tlResize'), $('#mResize')]) {
   let st = null;
   // 縦向きのスマホで動画をどこまで大きくできるか（横幅いっぱいまで）
@@ -2279,6 +2217,10 @@ let editBase = null;
 function edSync(){
   const o = parseCmd(normCmd($('#edCmd').value));
   $('#edPos').value = o.pos;
+  $('#edSize').value = o.size;
+  const color = Object.keys(COLOR_TABLE).find(k => COLOR_TABLE[k].toUpperCase() === o.color.toUpperCase()) || o.color;
+  if (![...$('#edColor').options].some(x=>x.value===color)) $('#edColor').add(new Option('読み込んだ色',color));
+  $('#edColor').value = color;
   if (document.activeElement !== $('#edDur')) $('#edDur').value = o.long ?? DEFAULT_DURATION;
   const d = o.long ?? DEFAULT_DURATION;
   $('#edSpeed').textContent = o.pos === 'naka' ? `流れる速さ ×${((DEFAULT_DURATION + NAKA_LEAD) / (d + NAKA_LEAD)).toFixed(2)}` : '';
@@ -2307,11 +2249,15 @@ function openNewDialog(t, pos){
   $('#edText').focus();
 }
 $('#edCmd').addEventListener('input', edSync);
+for (const [id,group] of [['edSize','size'],['edColor','color']]) $('#'+id).onchange=()=>{
+  const toks=normCmd($('#edCmd').value).split(' ').filter(t=>t && tokGroup(t)!==group);
+  toks.push($('#'+id).value);$('#edCmd').value=toks.join(' ');edSync();
+};
 $('#edPos').onchange = () => { $('#edCmd').value = setCmdPos($('#edCmd').value, $('#edPos').value); edSync(); };
 $('#edDur').oninput = () => { const v = parseFloat($('#edDur').value); if (v > 0){ $('#edCmd').value = setCmdLong($('#edCmd').value, v); edSync(); } };
 $('#edNow').onclick = () => { $('#edTime').value = fmtPrecise(video.currentTime || 0); };
 $('#edCancel').onclick = () => editDlg.close();
-$('#edDelete').onclick = () => { const c = editTarget; editDlg.close(); if (c){ TL.sel.delete(c.id); deleteComment(c); tlSelChanged(); } };
+$('#edDelete').onclick = () => { const c = editTarget; editDlg.close(); if (c && confirm('このコメントを削除しますか？ 間違えた場合は「ひとつ戻す」で戻せます。')){ TL.sel.delete(c.id); deleteComment(c); tlSelChanged(); } };
 $('#edText').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); edCommit(); }
 });
@@ -2359,535 +2305,6 @@ function addEditConflict({ reason, id, base, mine }){
   conflictOpen();
 }
 editDlg.addEventListener('close', () => { editTarget = null; TL.main.focus({ preventScroll:true }); });
-
-/* =====================================================================
-   Vim エディタ（画面）
-   ===================================================================== */
-const VIM_HEADER = [
-  '" コメナガレ ― 1行 = 1コメント   書式: 時刻 コマンド | 本文   （本文中の改行は \\n）',
-  '" :w 反映  :q 閉じる  :e! 読み直し  :seek 再生位置へ  :now 再生位置に追加  :help ヘルプ',
-];
-const VIM_TIME_RE = /^\d+(?::\d+){0,2}(?:\.\d+)?$/;
-const KNOWN_FLAGS = new Set(['invisible', 'full', 'ender', '_live']);
-const vimEl = $('#vim'), vimScreen = $('#vimScreen'), vimInput = $('#vimInput');
-const vim = { E: null, synced: -1, needsRender: false, lastPlayRender: 0, lineH: 0, ctrl: false, comp: 0, composing: false, touch: null, mouse: null, writing: false };
-
-function commentToLine(c){
-  return `${fmtPrecise(c.t)} ${c.cmd ? c.cmd + ' ' : ''}| ${c.text.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\t/g, '\\t')}`;
-}
-function vimBufferText(){ return VIM_HEADER.concat(state.comments.map(commentToLine)).join('\n'); }
-function parseVimLine(ln){
-  if (!ln.trim() || /^\s*"/.test(ln)) return null;
-  const m = /^\s*([0-9][0-9:.]*)(?=\s|\||$)(.*)$/.exec(ln);
-  if (!m) return { error:'行頭に時刻（例 01:23.45）が必要です' };
-  const t = parseTime(m[1]);
-  if (!VIM_TIME_RE.test(m[1]) || !isFinite(t)) return { error:`時刻「${m[1]}」を解釈できません` };
-  const rest = m[2], bar = rest.indexOf('|');
-  let cmd = '', text;
-  if (bar >= 0){ cmd = rest.slice(0, bar).trim(); text = rest.slice(bar + 1); if (text.startsWith(' ')) text = text.slice(1); }
-  else text = rest.trim();
-  text = text.replace(/\\(.)/g, (x, ch) => ch === 'n' ? '\n' : ch === 't' ? '\t' : ch);
-  if (!text.trim()) return { error:'本文が空です' };
-  return { t, cmd, text };
-}
-function vimWrite(text, force){
-  if (!force && vim.synced !== state.version) return { ok:false, err:'E949: コメントは読み込み後に他の場所で変更されています（:w! で上書き、:e! で読み直し）' };
-  const parsed = [], errors = [];
-  text.split('\n').forEach((ln, i) => {
-    const r = parseVimLine(ln);
-    if (!r) return;
-    if (r.error) errors.push({ line: i + 1, msg: r.error });
-    else parsed.push(r);
-  });
-  if (errors.length) return { ok:false, err:`E: ${errors[0].line} 行目: ${errors[0].msg}` + (errors.length > 1 ? `（ほか ${errors.length - 1} 件）` : '') };
-  const oldByKey = new Map(state.comments.map(c => [c.key, c]));
-  const next = [], seen = new Set();
-  let added = 0, dup = 0;
-  for (const p of parsed){
-    const c0 = makeComment(p.t, p.cmd, p.text, true);
-    if (seen.has(c0.key)){ dup++; continue; }
-    seen.add(c0.key);
-    const old = oldByKey.get(c0.key);
-    next.push(old || c0);
-    if (!old) added++;
-  }
-  const removed = state.comments.filter(c => !seen.has(c.key));
-  if (added || removed.length){
-    vim.writing = true;
-    try { commitOps([...removed.map(deleteOp), ...next.filter(c => !store.has(c.id)).map(addOp)]); }
-    finally { vim.writing = false; }
-  }
-  vim.synced = state.version;
-  return { ok:true, msg:`"コメント" ${next.length}件 反映しました（追加 ${added} / 削除 ${removed.length}${dup ? ` / 重複 ${dup}` : ''}）` };
-}
-function vimReload(force){
-  const E = vim.E;
-  if (!E || (E.modified && !force)) return;
-  const line = E.cur.line, top = E.top;
-  E.load(vimBufferText());
-  E.setCursor(Math.min(line, E.lines.length - 1), E.cur.col);
-  E.top = Math.min(top, E.lines.length - 1);
-  vim.synced = state.version;
-  vimScheduleRender();
-}
-function vimCommentsChanged(){ if (vim.E && !vim.writing) vimReload(false); }
-function vimQuit(){
-  if (vim.E && vim.E.modified) vimReload(true);
-  if (mq.matches) settings.mobilePane = 'timeline'; else settings.sidePane = 'list';
-  saveSettings();
-  vimInput.blur();
-  applyPanes();
-}
-function vimEx(name, args, ctx){
-  const n = name.toLowerCase();
-  if (n === 'seek'){
-    if (!state.videoLoaded) return 'E: 動画が開かれていません';
-    let t;
-    if (args){ t = parseTime(args); if (!isFinite(t)) return `E: 時刻「${args}」を解釈できません`; }
-    else {
-      const r = parseVimLine(ctx.line);
-      if (!r || r.error) return 'E: この行には時刻がありません';
-      t = parseCmd(normCmd(r.cmd)).pos === 'naka' ? r.t - NAKA_LEAD : r.t;
-    }
-    seekTo(Math.max(0, t));
-    return `▶ ${fmtPrecise(Math.max(0, t))}`;
-  }
-  if (n === 'now'){
-    const cmd = normCmd(cmdInput.value);
-    ctx.api.openLineBelow(`${fmtPrecise(video.currentTime || 0)} ${cmd ? cmd + ' ' : ''}| `);
-    return true;
-  }
-  if (n === 'play'){ togglePlay(); return true; }
-  return false;
-}
-function vimHelp(){
-  return [
-    'コメナガレ Vim エディタ                                   （Enter / q で閉じる）',
-    '',
-    '書式        時刻 コマンド | 本文       例) 01:23.45 ue red @5 | こんにちは',
-    '            本文の改行は \\n 、\\ 自体は \\\\ 。" で始まる行と空行は無視されます。',
-    '            表示時間はコマンドの @秒数。時刻の数字は Ctrl-a / Ctrl-x で増減できます。',
-    '反映        :w（:w! 他所での変更を上書き） :wq :x ZZ   閉じる :q :q! ZQ   読み直し :e!',
-    '独自        :seek [時刻] 動画をシーク   :now 再生位置で行を追加   :play 再生/一時停止',
-    '',
-    'モード      i a I A o O gi gI R s S C   v V Ctrl-v gv   :   / ?',
-    '移動        h j k l  w b e ge W B E gE  0 ^ $ g_ |  f F t T ; ,  gg G H M L  % { } ( )',
-    '            Ctrl-d u f b e y  zz zt zb  n N * # g* g#  m{a-z} `{a-z} \'{a-z}  Ctrl-o Ctrl-i',
-    'オペレータ  d c y > < g~ gu gU g? = ＋ モーション／テキストオブジェクト（dd cc yy >> など）',
-    '            iw aw iW aW is as ip ap i( a( ib i{ iB i[ i< i" i\' i`',
-    '編集        x X D C Y p P gp gP ]p J gJ r ~ u U Ctrl-r . Ctrl-a Ctrl-x',
-    'レジスタ    "a-z "A-Z "0-9 "- "_ "+ ". ": "/ "%    マクロ q{reg} … q  @{reg} @@ @:',
-    '挿入モード  Ctrl-w Ctrl-u Ctrl-h Ctrl-r{reg} Ctrl-o Ctrl-a Ctrl-e Ctrl-y Ctrl-t Ctrl-d',
-    '            Ctrl-v Ctrl-n Ctrl-p Insert',
-    'ビジュアル  o O d x c s r y p P > < ~ u U J gJ I A : Ctrl-a Ctrl-x g Ctrl-a',
-    'Ex          :s :& :&& :g :v :d :y :m :t :co :j :> :< :normal :sort :pu :k :mark',
-    '            :noh :set :reg :marks :jumps :delm :p :nu := :undo :redo :retab',
-    '            範囲  % . $ 数字 \'a \'<,\'> /pat/ ?pat? +n -n ;   区切り |',
-    ':set        number relativenumber wrap ignorecase smartcase hlsearch incsearch',
-    '            wrapscan shiftwidth expandtab tabstop joinspaces report',
-    '',
-    '注意        Ctrl-w / Ctrl-n / Ctrl-t などブラウザ予約キーは効かないことがあります。',
-    '            ノーマルモードでは IME をオフにしてください（挿入モードの日本語入力は可）。',
-  ];
-}
-function vimEnsure(){
-  if (vim.E) return vim.E;
-  const E = vim.E = createVimEngine({
-    write: vimWrite, quit: vimQuit,
-    reload: () => { vim.synced = state.version; return vimBufferText(); },
-    ex: vimEx, exNames: ['seek', 'now', 'play'], help: vimHelp,
-    clipboardWrite: (t) => { try { navigator.clipboard?.writeText(t).catch(() => {}); } catch {} },
-    clipboardRead: navigator.clipboard?.readText ? () => navigator.clipboard.readText() : null,
-    bell: () => { vimEl.classList.add('bell'); setTimeout(() => vimEl.classList.remove('bell'), 90); },
-    onChange: vimScheduleRender,
-  });
-  E.fileName = 'コメント';
-  E.load(vimBufferText());
-  E.setCursor(VIM_HEADER.length, 0);
-  vim.synced = state.version;
-  return E;
-}
-function vimScheduleRender(){ vim.needsRender = true; }
-function vimFrame(playing, t){
-  if (!vim.E || $('#paneVim').hidden || !vimScreen.clientHeight) return;
-  if (playing && performance.now() - vim.lastPlayRender > 250){ vim.lastPlayRender = performance.now(); vim.needsRender = true; }
-  if (vim.needsRender) vimRender();
-}
-const escHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-const nextIdx = (s, i) => { const c = s.charCodeAt(i); return c >= 0xD800 && c <= 0xDBFF && i + 1 < s.length ? i + 2 : i + 1; };
-function vimLineHtml(li, ctx){
-  const s = ctx.L[li], n = s.length;
-  const cls = new Array(n).fill(''), sty = new Array(n).fill('');
-  if (/^\s*"/.test(s)) cls.fill('k-com');
-  else if (s.trim()){
-    const m = /^(\s*)([0-9][0-9:.]*)?(.*)$/.exec(s);
-    let i = m[1].length;
-    if (m[2] && (m[3] === '' || /^[\s|]/.test(m[3]))){
-      const c = VIM_TIME_RE.test(m[2]) ? 'k-time' : 'k-err';
-      for (let k = i; k < i + m[2].length; k++) cls[k] = c;
-      i += m[2].length;
-    } else {
-      const tok = /^[^\s|]+/.exec(s.slice(i));
-      if (tok){ for (let k = i; k < i + tok[0].length; k++) cls[k] = 'k-err'; i += tok[0].length; }
-    }
-    const bar = s.indexOf('|', i);
-    if (bar >= 0){
-      const re = /\S+/g, seg = s.slice(i, bar);
-      let t;
-      while ((t = re.exec(seg))){
-        const tok = t[0], a = i + t.index, g = tokGroup(tok);
-        const color = g === 'color' ? (COLOR_TABLE[tok.toLowerCase()] || expandHex(tok)) : '';
-        const c = g === 'long' ? 'k-dur' : g === 'pos' ? 'k-pos' : (g.startsWith('flag:') && !KNOWN_FLAGS.has(tok.toLowerCase())) ? 'k-err' : 'k-cmd';
-        for (let k = a; k < a + tok.length; k++){ cls[k] = c; if (color) sty[k] = color; }
-      }
-      cls[bar] = 'k-sep';
-      for (let k = bar + 1; k < n; k++){
-        if (s[k] === '\\' && k + 1 < n){ cls[k] = cls[k + 1] = 'k-esc'; k++; }
-        else cls[k] = '';
-      }
-    }
-  }
-  const ov = new Uint8Array(n + 1);
-  if (ctx.re) for (const [a, len] of ctx.E.matchesIn(ctx.re, s)) for (let k = a; k < a + Math.max(1, len) && k <= n; k++) ov[k] |= 2;
-  if (ctx.inc && ctx.inc.line === li) for (let k = ctx.inc.col; k < ctx.inc.col + Math.max(1, ctx.inc.len) && k <= n; k++) ov[k] |= 8;
-  const r = ctx.vr;
-  if (r && li >= r.start.line && li <= r.end.line){
-    let a, b;
-    if (r.type === 'line'){ a = 0; b = n + 1; }
-    else if (r.type === 'block'){ a = Math.min(r.c1, n); b = r.toEol ? n + 1 : Math.min(r.c2 < n ? nextIdx(s, r.c2) : r.c2 + 1, n + 1); }
-    else { a = li === r.start.line ? r.start.col : 0; b = li === r.end.line ? r.end.col : n + 1; }
-    for (let k = a; k < b && k <= n; k++) ov[k] |= 1;
-  }
-  if (ctx.cur && ctx.cur.line === li){
-    const c = Math.min(ctx.cur.col, n), e = c < n ? nextIdx(s, c) : c + 1;
-    for (let k = c; k < e; k++) ov[k] |= 4;
-  }
-  const N = ov[n] ? n + 1 : n;
-  const keyAt = (x) => x < n ? cls[x] + '|' + sty[x] + '|' + ov[x] : '||' + ov[x];
-  let html = '';
-  for (let k = 0; k < N;){
-    const kk = keyAt(k);
-    let j = k + 1;
-    while (j < N && j < n && keyAt(j) === kk) j++;
-    const text = k >= n ? ' ' : s.slice(k, j);
-    let c = k < n ? cls[k] : '';
-    const o = ov[k];
-    if (o & 1) c += ' o-vis';
-    if (o & 2) c += ' o-srch';
-    if (o & 8) c += ' o-inc';
-    if (o & 4) c += ' ' + ctx.curCls;
-    html += `<span class="${c.trim()}" data-c="${k}"${k < n && sty[k] ? ` style="color:${sty[k]}"` : ''}>${escHtml(text)}</span>`;
-    k = j;
-  }
-  return html;
-}
-function vimRender(){
-  vim.needsRender = false;
-  const E = vim.E;
-  if (!E || !vimScreen.clientHeight) return;
-  if (!vim.lineH){ const p = document.createElement('div'); p.className = 'vl'; p.innerHTML = '<span class="lt">X</span>'; vimScreen.append(p); vim.lineH = p.getBoundingClientRect().height || 19; p.remove(); }
-  const rows = Math.max(1, Math.floor(vimScreen.clientHeight / vim.lineH));
-  E.rows = rows;
-  const L = E.lines;
-  const focusLine = E.incMatch ? E.incMatch.line : E.cur.line;
-  if (focusLine < E.top) E.top = E.top - focusLine > rows ? Math.max(0, focusLine - (rows >> 1)) : focusLine;
-  else if (focusLine >= E.top + rows) E.top = focusLine - (E.top + rows) > rows ? Math.max(0, focusLine - (rows >> 1)) : focusLine - rows + 1;
-  E.top = clamp(E.top, 0, Math.max(0, L.length - 1));
-  vimEl.classList.toggle('nonu', !E.opts.number && !E.opts.relativenumber);
-  vimEl.classList.toggle('nowrap', !E.opts.wrap);
-  const nw = Math.max(3, String(L.length).length);
-  const nowT = video.currentTime || 0, playingNow = state.videoLoaded;
-  const ctx = {
-    E, L, re: E.searchRe(), inc: E.incMatch, vr: E.visualRange(),
-    cur: E.mode === 'cmdline' ? null : E.cur,
-    curCls: E.mode === 'insert' ? 'o-bar' : E.mode === 'replace' ? 'o-und' : 'o-cur',
-  };
-  const draw = () => {
-    let html = '';
-    for (let i = 0; i <= rows; i++){
-      const li = E.top + i;
-      if (li >= L.length){ html += `<div class="vl tilde"><span class="ln">${' '.repeat(nw)}</span><span class="lt">~</span></div>`; continue; }
-      let num;
-      if (E.opts.relativenumber){ const d = Math.abs(li - E.cur.line); num = d === 0 && E.opts.number ? String(li + 1).padEnd(nw) : String(d).padStart(nw); }
-      else num = String(li + 1).padStart(nw);
-      let lnCls = li === E.cur.line ? ' cur' : '';
-      if (playingNow && /^\s*\d/.test(L[li])){
-        const p = parseVimLine(L[li]);
-        if (p && !p.error){ const sp = spanFromVals(p.t, normCmd(p.cmd)); if (nowT >= sp.s && nowT < sp.e) lnCls += ' now'; }
-      }
-      html += `<div class="vl" data-l="${li}"><span class="ln${lnCls}">${num}</span><span class="lt">${vimLineHtml(li, ctx)}</span></div>`;
-    }
-    vimScreen.innerHTML = html;
-  };
-  draw();
-  for (let guard = 0; guard < 400; guard++){
-    const el = vimScreen.children[focusLine - E.top];
-    if (!el || E.top >= focusLine || el.offsetTop + el.offsetHeight <= vimScreen.clientHeight + 0.5) break;
-    E.top++; draw();
-  }
-  // 横スクロール（nowrap）
-  const curEl = vimScreen.querySelector('.o-cur,.o-bar,.o-und');
-  if (!E.opts.wrap && curEl){
-    const lnW = vimScreen.querySelector('.ln')?.offsetWidth || 0;
-    const x = curEl.offsetLeft, w = curEl.offsetWidth || 8;
-    if (x - lnW < vimScreen.scrollLeft) vimScreen.scrollLeft = Math.max(0, x - lnW - 20);
-    else if (x + w > vimScreen.scrollLeft + vimScreen.clientWidth) vimScreen.scrollLeft = x + w - vimScreen.clientWidth + 20;
-  } else if (E.opts.wrap) vimScreen.scrollLeft = 0;
-  // ステータス行
-  const pct = E.top === 0 && E.top + rows >= L.length ? 'All' : E.top === 0 ? 'Top' : E.top + rows >= L.length ? 'Bot' : Math.round(E.top * 100 / Math.max(1, L.length - rows)) + '%';
-  const stale = vim.synced !== state.version;
-  const ch = [...L[E.cur.line].slice(0, E.cur.col)].length + 1;
-  $('#vimStatus').innerHTML = `<span class="grow">"${escHtml(E.fileName)}"${E.modified ? ' <span class="mod">[+]</span>' : ''}${stale ? ' <span class="stale">[他所で変更あり]</span>' : ''}</span>`
-    + `<span>${state.videoLoaded ? '▶ ' + fmtPrecise(nowT) : ''}</span><span>${E.cur.line + 1},${ch}</span><span>${pct}</span>`;
-  // コマンド行
-  let left;
-  if (E.mode === 'cmdline' && E.cmd){
-    const t = E.cmd.text, p = E.cmd.pos;
-    const at = t.slice(p, nextIdx(t, p)) || ' ';
-    left = `<span class="grow">${escHtml(E.cmd.type + t.slice(0, p))}<span class="cc">${escHtml(at)}</span>${escHtml(t.slice(p + (at === ' ' && p >= t.length ? 0 : at.length)))}</span>`;
-  } else if (E.msg){
-    left = `<span class="grow${E.msgErr ? ' err' : ''}">${escHtml(E.msg)}</span>`;
-  } else {
-    const modes = { insert:'-- INSERT --', replace:'-- REPLACE --' };
-    let m = modes[E.mode] || '';
-    if (E.mode === 'visual') m = { v:'-- VISUAL --', V:'-- VISUAL LINE --', '<C-v>':'-- VISUAL BLOCK --' }[E.vmode];
-    if (E.mode === 'normal' && E.oneShot) m = '-- (insert) --';
-    left = `<span class="grow"><span class="mode">${m}</span>${E.recording ? `<span class="rec">${m ? ' ' : ''}recording @${E.recording}</span>` : ''}</span>`;
-  }
-  $('#vimCmd').innerHTML = left + `<span>${escHtml(E.showcmd || '')}</span>`;
-  // ページャ
-  const more = $('#vimMore');
-  if (E.more){ more.hidden = false; more.innerHTML = escHtml(E.more.join('\n')) + '\n<span class="prompt">Press ENTER or type command to continue</span>'; }
-  else more.hidden = true;
-  // IME 候補位置のため入力欄をカーソル位置へ
-  const anchor = E.mode === 'cmdline' ? $('#vimCmd .cc') : curEl;
-  if (anchor){
-    const r = anchor.getBoundingClientRect(), base = vimEl.getBoundingClientRect();
-    vimInput.style.left = Math.round(r.left - base.left) + 'px';
-    vimInput.style.top = Math.round(r.top - base.top) + 'px';
-  }
-}
-function vimPosFromPoint(x, y){
-  const E = vim.E;
-  let node = null, off = 0;
-  if (document.caretPositionFromPoint){ const p = document.caretPositionFromPoint(x, y); if (p){ node = p.offsetNode; off = p.offset; } }
-  else if (document.caretRangeFromPoint){ const r = document.caretRangeFromPoint(x, y); if (r){ node = r.startContainer; off = r.startOffset; } }
-  let lineEl = null, col = null;
-  if (node && vimScreen.contains(node)){
-    const span = node.nodeType === 3 ? node.parentElement : node;
-    lineEl = span.closest('.vl');
-    if (span.dataset && span.dataset.c != null && span.closest('.lt')){
-      col = +span.dataset.c + off;
-      if (node.nodeType === 3 && off > 0){
-        const rg = document.createRange(); rg.setStart(node, off - 1); rg.setEnd(node, off);
-        const rc = rg.getBoundingClientRect();
-        if (x < rc.right && x >= rc.left - 0.5) col -= 1;
-      }
-    }
-  }
-  if (!lineEl){
-    for (const el of vimScreen.children){ if (y < el.getBoundingClientRect().bottom){ lineEl = el; break; } }
-    lineEl = lineEl || vimScreen.lastElementChild;
-  }
-  if (!lineEl || lineEl.dataset.l == null) return { line: E.lines.length - 1, col: Infinity };
-  const line = +lineEl.dataset.l;
-  return { line, col: Math.min(col ?? Infinity, E.lines[line].length) };
-}
-function vimFeed(k){
-  if (!vim.E) return;
-  if (vim.ctrl && typeof k === 'string' && k.length === 1){
-    if (k === '[') k = '<Esc>';
-    else if (/^[a-z]$/i.test(k)) k = '<C-' + k.toLowerCase() + '>';
-    vimSetCtrl(false);
-  }
-  vim.E.feed(k);
-}
-function vimSetCtrl(on){ vim.ctrl = on; $('#vimCtrl').classList.toggle('on', on); }
-const VIM_SPECIAL = { Escape:'Esc', Enter:'CR', Backspace:'BS', Delete:'Del', Tab:'Tab', ArrowLeft:'Left', ArrowRight:'Right', ArrowUp:'Up', ArrowDown:'Down', Home:'Home', End:'End', PageUp:'PageUp', PageDown:'PageDown', Insert:'Insert' };
-function vimKeyToken(e){
-  const k = e.key;
-  if (!k || k === 'Unidentified' || k === 'Process' || e.isComposing || e.keyCode === 229) return null;
-  if (VIM_SPECIAL[k]){
-    let n = VIM_SPECIAL[k];
-    if (e.ctrlKey && n !== 'Esc' && n !== 'CR' && n !== 'BS') n = 'C-' + n;
-    else if (e.shiftKey && /^(Left|Right|Up|Down|Tab)$/.test(n)) n = 'S-' + n;
-    return '<' + n + '>';
-  }
-  if (e.metaKey) return null;
-  if (e.ctrlKey && !e.altKey){
-    const c = k.length === 1 ? k.toLowerCase() : '';
-    if (c === '[') return '<Esc>';
-    if (/^[a-z]$/.test(c)) return '<C-' + c + '>';
-    if (c === ']' || c === '^' || c === '6') return c === '6' ? '<C-^>' : '<C-' + c + '>';
-    return null;
-  }
-  if ([...k].length !== 1) return null;
-  return k === ' ' ? ' ' : k;
-}
-// IME で確定した文字を受け取るか（挿入・コマンドラインと、r・f・t などが次の1文字を待っているとき）
-const vimTakesIme = () => ['insert', 'replace', 'cmdline'].includes(vim.E.mode) || vim.E.wantsChar();
-vimInput.addEventListener('keydown', (e) => {
-  if (!vim.E) return;
-  if (e.isComposing || e.keyCode === 229){
-    if (e.key === 'Process' && !vimTakesIme()){ vim.E.msg = 'IME がオンになっています（ノーマルモードではオフにしてください）'; vim.E.msgErr = true; vimScheduleRender(); }
-    return;
-  }
-  let tok = vimKeyToken(e);
-  if (!tok) return;
-  if (tok === '<C-s>') return;
-  e.stopPropagation();
-  // ふつうの文字は入力（beforeinput）で受け取る。iPhone のキーボードは文字も keydown で知らせるが、
-  // ここで止めると変換が始まらず、12 キーの「a/A」で g を G にするといった置き換えができなくなるため
-  if ([...tok].length === 1 && !e.ctrlKey) return;
-  e.preventDefault();
-  vimFeed(tok);
-});
-function vimFlush(){
-  const v = vimInput.value;
-  vimInput.value = '';
-  if (!v || !vim.E) return;
-  const text = v.slice(vim.comp);
-  vim.comp = 0;
-  if (!text) return;
-  if (['insert', 'replace', 'cmdline'].includes(vim.E.mode)) vimFeed({ text });
-  else for (const ch of text){ const c = ch.charCodeAt(0); vimFeed(c >= 0xff01 && c <= 0xff5e ? String.fromCharCode(c - 0xfee0) : ch); }
-}
-vimInput.addEventListener('beforeinput', (e) => {
-  if (!vim.E || e.isComposing || e.inputType === 'insertCompositionText') return;
-  const map = { insertLineBreak:'<CR>', insertParagraph:'<CR>', deleteContentBackward:'<BS>', deleteContentForward:'<Del>', deleteWordBackward:'<C-w>' };
-  if (map[e.inputType]){ e.preventDefault(); vimFeed(map[e.inputType]); return; }
-  if ((e.inputType === 'insertText' || e.inputType === 'insertReplacementText') && e.data){
-    e.preventDefault();
-    if (['insert', 'replace', 'cmdline'].includes(vim.E.mode)) vimFeed({ text: e.data });
-    else for (const ch of e.data){ const c = ch.charCodeAt(0); vimFeed(c >= 0xff01 && c <= 0xff5e ? String.fromCharCode(c - 0xfee0) : ch); }
-  }
-});
-vimInput.addEventListener('compositionstart', () => { vim.composing = true; vim.comp = 0; vim.compFed = []; vim.skipComp = false; });
-// 変換中の文字をノーマルモードのキーとして渡す（確定を待たない。Android のキーボード対策）。
-// 渡した文字があとで置き換わったり消えたりしたら（Gboard の 12 キーで g を打ってから「大⇔小」で G にするなど）、
-// 打つ前に戻してから新しい文字を渡す。r・f・t の後はローマ字の途中（「か」の k など）を渡さないよう、確定を待つ
-function vimComposeInput(){
-  const fed = vim.compFed, chars = [...vimInput.value];
-  let same = 0;
-  while (same < fed.length && same < chars.length && fed[same].ch === chars[same]) same++;
-  if (same < fed.length){
-    const first = fed.slice(same).find((f) => f.cp);
-    if (first){ vim.E.rewind(first.cp); vimSetCtrl(first.ctrl); }
-    fed.length = same;
-  }
-  for (const ch of chars.slice(same)){
-    if (vimTakesIme()) break;
-    const key = /^[\x21-\x7e]$/.test(ch);
-    fed.push({ ch, cp: key ? vim.E.checkpoint() : null, ctrl: vim.ctrl });
-    if (key) vimFeed(ch);
-  }
-  vim.comp = fed.map((f) => f.ch).join('').length;
-}
-vimInput.addEventListener('input', (e) => {
-  if (!vim.E) return;
-  if (vim.skipComp) return;
-  if (vim.composing){ vimComposeInput(); return; }
-  vimFlush();
-});
-vimInput.addEventListener('compositionend', () => {
-  vim.composing = false;
-  if (vim.skipComp){ vim.skipComp = false; vim.comp = 0; vimInput.value = ''; return; }
-  if (vim.E && !vimTakesIme()){ vim.comp = vimInput.value.length; }
-  setTimeout(vimFlush, 0);
-});
-vimInput.addEventListener('paste', (e) => {
-  const t = e.clipboardData?.getData('text');
-  e.preventDefault();
-  if (t && vim.E) vim.E.pasteText(t);
-});
-vimInput.addEventListener('focus', () => { vimEl.classList.add('focus'); vimScheduleRender(); });
-vimInput.addEventListener('blur', () => { vimEl.classList.remove('focus'); vimScheduleRender(); });
-vimScreen.addEventListener('pointerdown', (e) => {
-  if (!vim.E || e.button > 0) return;
-  e.preventDefault();
-  vimInput.focus({ preventScroll:true });
-  try { vimScreen.setPointerCapture(e.pointerId); } catch {}
-  if (e.pointerType !== 'mouse'){ vim.touch = { id: e.pointerId, x: e.clientX, y: e.clientY, top: vim.E.top, moved: false }; return; }
-  if (vim.E.more){ vim.E.feed('<CR>'); return; }
-  const pos = vimPosFromPoint(e.clientX, e.clientY);
-  if (vim.E.mode === 'visual' && !e.shiftKey) vim.E.feed('<Esc>');
-  vim.E.setCursor(pos.line, pos.col);
-  vim.mouse = { id: e.pointerId, start: pos, active: false };
-  vimScheduleRender();
-});
-// iPhone では、タップのあとに来る mousedown で入力欄からフォーカスが外れ、キーボードが出てすぐ閉じてしまう
-// （長押しだと mousedown が来ないので開いたままになる）。フォーカスを動かさず、click でも入力欄に戻す
-vimEl.addEventListener('mousedown', (e) => { if (e.target !== vimInput) e.preventDefault(); });
-vimScreen.addEventListener('click', () => { if (vim.E && document.activeElement !== vimInput) vimInput.focus({ preventScroll:true }); });
-vimScreen.addEventListener('pointermove', (e) => {
-  const E = vim.E;
-  if (!E) return;
-  if (vim.touch && vim.touch.id === e.pointerId){
-    const dy = e.clientY - vim.touch.y;
-    if (Math.abs(dy) > 6 || Math.abs(e.clientX - vim.touch.x) > 6) vim.touch.moved = true;
-    const target = clamp(vim.touch.top - Math.round(dy / (vim.lineH || 19)), 0, Math.max(0, E.lines.length - 1));
-    if (target !== E.top) E.scrollBy(target - E.top);
-    return;
-  }
-  if (vim.mouse && vim.mouse.id === e.pointerId && E.mode !== 'cmdline'){
-    const pos = vimPosFromPoint(e.clientX, e.clientY);
-    if (!vim.mouse.active && (pos.line !== vim.mouse.start.line || Math.min(pos.col, 1e9) !== Math.min(vim.mouse.start.col, 1e9))){
-      vim.mouse.active = true;
-      if (E.mode === 'normal') E.startVisualAt(vim.mouse.start.line, Math.min(vim.mouse.start.col, Math.max(0, E.lines[vim.mouse.start.line].length - 1)));
-    }
-    if (vim.mouse.active){ E.setCursor(pos.line, pos.col); vimScheduleRender(); }
-  }
-});
-for (const ev of ['pointerup', 'pointercancel']){
-  vimScreen.addEventListener(ev, (e) => {
-    if (vim.touch && vim.touch.id === e.pointerId){
-      const t = vim.touch; vim.touch = null;
-      if (!t.moved && ev === 'pointerup' && vim.E){
-        if (vim.E.more){ vim.E.feed('<CR>'); return; }
-        const pos = vimPosFromPoint(e.clientX, e.clientY);
-        vim.E.setCursor(pos.line, pos.col); vimScheduleRender();
-      }
-    }
-    if (vim.mouse && vim.mouse.id === e.pointerId) vim.mouse = null;
-  });
-}
-vimScreen.addEventListener('wheel', (e) => {
-  if (!vim.E) return;
-  e.preventDefault();
-  const n = Math.sign(e.deltaY) * (Math.abs(e.deltaY) > 40 || e.deltaMode ? 3 : 1);
-  if (n) vim.E.scrollBy(n);
-}, { passive:false });
-$('#vimMore').addEventListener('pointerdown', (e) => { e.preventDefault(); vimInput.focus({ preventScroll:true }); vim.E?.feed('<CR>'); });
-// キーのボタン（スマホのキーバーと上の Esc）。押してもフォーカスを奪わず、キーボードを閉じない
-function vimKeyButton(b) {
-  vimInput.focus({ preventScroll:true });
-  const k = b.dataset.k;
-  // IME の変換中なら、そこまでの文字を確定してから押す（変換が終わったときにもう一度渡さない）
-  if (vim.composing && vim.E){
-    const text = vimInput.value.slice(vim.comp);
-    if (text && ['insert', 'replace', 'cmdline'].includes(vim.E.mode)) vimFeed({ text });
-    vimInput.value = '';
-    vim.comp = 0;
-    vim.skipComp = true;
-  }
-  if (k === 'ctrl') vimSetCtrl(!vim.ctrl);
-  else { vimSetCtrl(false); vimEnsure().feed(k); }
-}
-for (const bar of [$('#vimKeys'), $('.vim-head')]) {
-  bar.addEventListener('pointerdown', (e) => {
-    const b = e.target.closest('button[data-k]');
-    if (!b) return;
-    e.preventDefault();
-    vimKeyButton(b);
-  });
-  // キーボードで押したとき（pointerdown が来ない）
-  bar.addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-k]');
-    if (b && e.detail === 0) vimKeyButton(b);
-  });
-}
-for (const b of document.querySelectorAll('[data-ex]')) b.onclick = () => { vimEnsure().ex(b.dataset.ex); vimInput.focus({ preventScroll:true }); };
-$('#vim').addEventListener('pointerdown', (e) => { if (e.target === vimEl) vimInput.focus({ preventScroll:true }); });
 
 /* =====================================================================
    パネル切り替え（PC: サイドのタブ / スマホ: 下部のタブ）
@@ -2947,7 +2364,6 @@ function applyPanes(){
   const mobile = mq.matches;
   const pane = mobile ? (settings.mobilePane === 'timeline' ? 'list' : settings.mobilePane) : settings.sidePane;
   $('#paneList').hidden = pane !== 'list';
-  $('#paneVim').hidden = pane !== 'vim';
   $('#paneHistory').hidden = pane !== 'history';
   document.body.dataset.mpane = settings.mobilePane;
   document.body.classList.toggle('tl-off', !settings.timeline);
@@ -2955,25 +2371,20 @@ function applyPanes(){
   for (const b of document.querySelectorAll('.stab')) b.classList.toggle('on', b.dataset.pane === settings.sidePane);
   for (const b of document.querySelectorAll('.mtab')) b.classList.toggle('on', b.dataset.mpane === settings.mobilePane);
   applyLayoutVars();
-  const vimShown = pane === 'vim' && (!mobile || settings.mobilePane === 'vim');
-  if (vimShown){ vimEnsure(); if (!vim.E.modified && vim.synced !== state.version) vimReload(false); }
   if (pane === 'history') histRefresh();
   requestAnimationFrame(() => {
     resizeCanvas(); tlResize();
-    if (vimShown){ vim.lineH = 0; vimRender(); }
   });
 }
 for (const b of document.querySelectorAll('.stab')) b.onclick = () => {
   settings.sidePane = b.dataset.pane; saveSettings(); applyPanes();
-  if (b.dataset.pane === 'vim') setTimeout(() => vimInput.focus({ preventScroll:true }), 0);
 };
 for (const b of document.querySelectorAll('.mtab')) b.onclick = () => {
   settings.mobilePane = b.dataset.mpane; saveSettings(); applyPanes();
 };
-$('#btnTimeline').onclick = () => { settings.timeline = !settings.timeline; saveSettings(); applyPanes(); };
+$('#btnTimeline').onclick = () => { $('.more-tools').open=false; settings.timeline = !settings.timeline; saveSettings(); applyPanes(); };
 mq.addEventListener('change', applyPanes);
 // ウィンドウや右のパネルの幅が変わったら描き直す
-new ResizeObserver(() => { if (vim.E && !$('#paneVim').hidden) vimScheduleRender(); }).observe($('#vimScreen'));
 
 /* =====================================================================
    共同編集（komenagare CLI から配信されているとき）
@@ -3177,6 +2588,7 @@ function collabAddConflicts(entry, conflicts, fix, local){
 function collabUI(){
   const el = $('#collabStatus');
   if (!el) return;
+  updateBeginnerGuide();
   el.hidden = !state.collab;
   const pending = collab.outbox.length;
   if (collab.connected){
@@ -3185,8 +2597,8 @@ function collabUI(){
     el.title = `参加者: ${collab.peers.join('、') || '—'}\nクリックで参加者の一覧（追いかける・表示名の変更）`;
   } else {
     el.className = 'collab off';
-    const blocked = { protocol: '○ ページを再読み込みしてください', auth: '○ ログインしてください', project: '○ プロジェクトを選んでください' }[collab.blocked];
-    el.textContent = (blocked || (collab.failed >= 3 ? '○ ホストに接続できません' : '○ オフライン')) + (pending ? `（未送信 ${pending}）` : '');
+    const blocked = { protocol: '○ ページを再読み込みしてください', auth: '○ ログインしてください', project: '○ 編集するグループを選んでください' }[collab.blocked];
+    el.textContent = (blocked || (collab.failed >= 3 ? '○ 接続できません。主催者に確認してください' : '○ オフライン')) + (pending ? `（未送信 ${pending}）` : '');
     el.title = (collab.failed >= 3 ? 'ホストが起動しているか、URL の k= が正しいか確認してください。' : 'ホストとの接続が切れています。') + '\n変更はこのブラウザに保存され、つながり直したら送られます。';
   }
 }
@@ -3300,7 +2712,7 @@ async function collabInit(){
   $('#collabStatus').onclick = peersOpen;
   $('#projectBtn').onclick = () => projectsOpen();
   $('#projectBtn').hidden = false;
-  $('#projectBtn').textContent = '📁 プロジェクト';
+  $('#projectBtn').textContent = '📁 編集するグループ';
   $('#peersRename').onclick = () => {
     const n = prompt('共同編集で表示する名前', collabName());
     if (n == null) return;
@@ -3555,7 +2967,7 @@ function histOpLine(op){
   }
   const name = op.after.text ?? op.before.text ?? store.get(op.id)?.text;
   line.append(name != null ? `「${clip(name, 24)}」 ` : '');
-  const label = { t: '時刻', cmd: 'コマンド', text: '本文' };
+  const label = { t: '表示する時間', cmd: '文字の見た目', text: '本文' };
   const show = (k, v) => k === 't' ? fmtPrecise(v ?? 0) : k === 'text' ? `「${clip(v, 24)}」` : (v || '（なし）');
   for (const k of ['t', 'cmd', 'text']){
     if (!(k in op.after)) continue;
@@ -3670,11 +3082,11 @@ function conflictResolve(rec, action){
 function conflictsChanged(){
   if (collab.owner) collabTx('meta', 'readwrite', s => s.put(collab.conflicts, 'conflicts:' + collab.owner)).catch(e => console.warn(e));
   const n = allConflicts().length;
-  for (const b of [$('#conflictBtn'), $('#histConflicts')]){ b.hidden = !n; b.textContent = `⚠ 衝突 ${n}`; }
+  for (const b of [$('#conflictBtn'), $('#histConflicts')]){ b.hidden = !n; b.textContent = `⚠ 確認が必要 ${n}件`; }
   if ($('#conflictDlg').open){ if (n) conflictRender(); else $('#conflictDlg').close(); }
 }
 function conflictRender(){
-  const label = { t: '時刻', cmd: 'コマンド', text: '本文' };
+  const label = { t: '表示する時間', cmd: '文字の見た目', text: '本文' };
   const show = (k, v) => k === 't' ? fmtPrecise(v ?? 0) : (v || '（なし）');
   const frag = document.createDocumentFragment();
   for (const rec of allConflicts()){
@@ -4028,7 +3440,7 @@ $('#setBorder').onchange = (e) => { settings.mineBorder = e.target.checked; save
 $('#setAutosave').onchange = (e) => { settings.autosave = e.target.checked; saveSettings(); updateStatus(); };
 $('#setFormat').onchange = (e) => { settings.saveFormat = e.target.value; saveSettings(); };
 
-$('#btnHelp').onclick = () => $('#helpDlg').showModal();
+$('#btnHelp').onclick = () => { $('.more-tools').open=false;$('#helpDlg').showModal(); };
 $('#helpClose').onclick = () => $('#helpDlg').close();
 
 document.addEventListener('keydown', (e) => {
@@ -4066,6 +3478,59 @@ window.addEventListener('beforeunload', (e) => {
 if (document.fonts && document.fonts.ready){
   document.fonts.ready.then(() => { metricCache.clear(); displayRenderer.reset(); if (state.comments.length) relayout(); });
 }
+
+/* ---------- Beginner workflow ---------- */
+function updateBeginnerGuide(){
+  const hasVideo=state.videoLoaded, hasComments=state.comments.length>0;
+  document.body.classList.toggle('has-video',hasVideo);
+  document.body.classList.toggle('has-comments',hasComments);
+  $('#stagePlay').hidden=!hasVideo || !video.paused;
+  const current=!hasVideo?'stepVideo':!hasComments && !state.dirty?'stepComment':'stepSave';
+  for(const id of ['stepVideo','stepComment','stepSave']){
+    const el=$('#'+id);if(id===current)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
+    el.classList.toggle('done',id==='stepVideo'?hasVideo:id==='stepComment'?hasComments:hasComments && !state.dirty && !!state.fileName);
+  }
+  $('#guideText').textContent=!hasVideo?'動画を選ぶ → コメントを書く → 保存・共有':!hasComments && !state.dirty?'動画を動かして好きな場面へ。入力を始めると止まるので、ゆっくり書けます。':state.collab?(collab.connected?'みんなと編集中です。変更は自動で共有されます。':'接続を確認しています。閉じずにお待ちください。'):(!state.comments.length && state.dirty?'コメント一覧は空です。削除をファイルに残すには「コメントを保存」を押してください。':!state.dirty && state.fileName?'コメントファイルは保存済みです。「共有する」から相手に渡せます。':'「コメントを保存」でファイルを残しましょう。人に渡すときは「共有する」。');
+  $('#textInput').disabled=!hasVideo;
+  $('#btnPost').disabled=!hasVideo;
+  $('#btnSave').disabled=!hasComments && !state.dirty;
+}
+$('#btnUndo').onclick=undo;$('#btnRedo').onclick=redo;
+document.addEventListener('pointerdown',e=>{const more=$('.more-tools');if(!more.contains(e.target))more.open=false;});
+$('#btnShare').onclick=()=>{
+  shareView(null);
+  const live=state.collab;
+  $('#shareOnlineNote').textContent=live?(collab.connected?'この部屋で共同編集中です。参加する人も同じ動画を手元に用意してください。':'今は接続を確認しています。ファイル保存は引き続き使えます。'):'主催者から届いた招待リンクを開いて参加します。このページだけではオンラインの編集部屋を作れません。準備がまだなら、「選び直す」から「コメントを渡す」を選んでください。';
+  $('#btnCopyInvite').hidden=!live || collab.auth==='otp' || !collab.project;
+  $('#btnInviteAdmin').hidden=!live || collab.auth!=='otp' || !collab.session?.admin;
+  $('#inviteResult').textContent='';$('#inviteFallback').hidden=true;
+  $('#btnShareDownload').disabled=!state.comments.length;
+  $('#btnExport').disabled=!state.videoLoaded;
+  $('#shareDlg').showModal();
+};
+function shareView(view){
+  $('#shareChooser').hidden=!!view;$('#shareBack').hidden=!view;
+  for(const el of document.querySelectorAll('[data-share-panel]'))el.hidden=el.dataset.sharePanel!==view;
+  $('#shareTitle').textContent=view?({video:'動画で見てもらう',file:'コメントを渡す',import:'コメントを受け取る',live:'一緒に編集する'})[view]:'なにをしますか？';
+  $('#shareDlg .dlg-body').scrollTop=0;
+}
+for(const b of document.querySelectorAll('[data-share-view]'))b.onclick=()=>{shareView(b.dataset.shareView);$('#shareBack').focus();};
+$('#shareBack').onclick=()=>{shareView(null);$('#shareChooser button').focus();};
+$('#btnPickVideo').onclick=e=>{e.stopPropagation();$('#fileVideo').click();};
+$('#stagePlay').onclick=e=>{e.stopPropagation();togglePlay();};
+$('#shareClose').onclick=()=>$('#shareDlg').close();
+$('#btnShareDownload').onclick=()=>{
+  download(serialize('json'),defaultFileName('json'),'application/json');
+  toast('コメントファイルを保存しました。メールやチャットで相手に渡してください。動画は別に用意します。',{timeout:8000});
+};
+$('#btnCopyInvite').onclick=async()=>{
+  if(!state.collab || collab.auth==='otp' || !collab.project)return;
+  // Never share otp= or a login session token. Only the explicit project/key.
+  const link=new URL(projectUrl(collab.project),collab.publicUrl||location.href).href;
+  try{await navigator.clipboard.writeText(link);$('#inviteResult').textContent='参加用リンクをコピーしました。参加してよい人だけに渡してください。';}
+  catch{$('#inviteFallback').hidden=false;$('#inviteFallback').value=link;$('#inviteFallback').select();$('#inviteResult').textContent='リンクを長押し、または選択してコピーしてください。参加してよい人だけに渡してください。';}
+};
+$('#btnInviteAdmin').onclick=()=>{ $('#shareDlg').close();projectsOpen();$('#projectsAuth').click(); };
 
 /* ---------- KOME Studio: isolated standalone recovery and migration ---------- */
 const RECOVERY_KEY = 'kome-studio-work-v2';
@@ -4112,7 +3577,7 @@ $('#btnLegacySave').onclick = () => {
   if (!confirm('旧KOME形式はIDやkomenagare独自コマンドを完全には再現できません。通常のJSONも保存してください。旧形式をダウンロードしますか？')) return;
   download(serialize('legacy'), 'comments.legacy.json', 'application/json');
 };
-$('#btnConnection').onclick = () => $('#connectionDlg').showModal();
+$('#btnConnection').onclick = () => { $('.more-tools').open=false;$('#connectionDlg').showModal(); };
 $('#connectionClose').onclick = () => $('#connectionDlg').close();
 recoveryInit();
 
