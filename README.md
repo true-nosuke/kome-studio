@@ -125,6 +125,7 @@ npm run test:browser
 ブラウザーテストはローカルのKOME Studioと模擬プロトコル接続先だけを使用し、
 元のkomenagareアプリやCLIを起動しません。テスト動画は同梱の人工映像＋440Hz音声です。
 検証の詳細は [docs/VALIDATION.md](docs/VALIDATION.md) を参照してください。
+CI設定例は `docs/ci-example.yml` にあります。接続経由では `.github/workflows/` の追加だけがGitHub APIに拒否されたため、ワークフローとしては登録していません。必要なら権限のある管理者が `.github/workflows/test.yml` として追加してください。
 
 ## 由来とライセンス
 
