@@ -354,7 +354,7 @@ const ICON = {
   cmtOff:'<svg viewBox="0 0 24 24"><path d="M4 4h16v12H8.5L4 20zm3 4v2h10V8zm0 3v2h7v-2z" fill-rule="evenodd"/><path d="M3 3l18 18" stroke="#eee" stroke-width="2"/></svg>',
 };
 $('#btnFull').innerHTML = ICON.full;
-function updatePlayIcon(){ $('#btnPlay').innerHTML = video.paused ? ICON.play : ICON.pause; }
+function updatePlayIcon(){ $('#btnPlay').innerHTML = video.paused ? ICON.play : ICON.pause; $('#btnPlay').setAttribute('aria-label',video.paused?'再生':'一時停止');$('#stagePlay').hidden=!state.videoLoaded || !video.paused; }
 function updateVolIcon(){ $('#btnMute').innerHTML = (video.muted || video.volume === 0) ? ICON.mute : ICON.vol; }
 function updateCommentIcon(){
   const b = $('#btnToggleComments');
@@ -459,6 +459,8 @@ function updateTimeUI(t = video.currentTime){
   seekFill.style.width = (r * 100) + '%';
   seekKnob.style.left = (r * 100) + '%';
   $('#timeText').textContent = `${fmt(t)} / ${fmt(d)}`;
+  $('#postAt').textContent=fmtPrecise(t);
+  $('#btnPost').title=fmtPrecise(t)+' の場面にコメントを追加';
   highlightCurrent(t);
 }
 
@@ -636,8 +638,8 @@ function renderList(){
     const row = document.createElement('div');
     row.className = 'row' + (c.mine ? ' mine' : '') + (parseCmd(c.cmd).invisible ? ' inv' : '');
     row.dataset.i = i;
-    const rt = document.createElement('span'); rt.className = 'rt'; rt.textContent = fmtList(c.t);
-    const rc = document.createElement('span'); rc.className = 'rc'; rc.textContent = c.text;
+    const rt = document.createElement('button'); rt.type='button';rt.className = 'rt'; rt.textContent = fmtList(c.t);rt.title='この場面へ移動';rt.setAttribute('aria-label',fmtPrecise(c.t)+' の場面へ移動');
+    const rc = document.createElement('button');rc.type='button';rc.className = 'rc'; rc.textContent = c.text;rc.setAttribute('aria-label','コメントを編集: '+c.text);
     const rm = document.createElement('span'); rm.className = 'rm'; rm.title = c.cmd;
     const o = parseCmd(c.cmd);
     if (o.color !== '#FFFFFF'){ const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = o.color; rm.append(sw); }
@@ -664,7 +666,7 @@ $('#search').addEventListener('input', renderList);
 list.addEventListener('click', (e) => {
   const row = e.target.closest('.row'); if (!row) return;
   const c = listItems[+row.dataset.i]; if (!c) return;
-  if (e.target.closest('.del')){ openEditDialog(c); return; }
+  if (e.target.closest('.del,.rc')){ openEditDialog(c); return; }
   seekTo(parseCmd(c.cmd).pos === 'naka' ? c.t - NAKA_LEAD : c.t);
   TL.sel = new Set([c.id]); tlSelChanged(); tlEnsureVisible(c);
 });
@@ -1022,7 +1024,7 @@ function expSetBusy(on){
   $('#expForm').style.opacity = on ? .5 : 1;
   const b = $('#btnExport');
   b.classList.toggle('busy', on && exportState.mode === 'fast');
-  if (!on) b.textContent = 'コメント付き動画を保存';
+  if (!on) b.textContent = 'コメント付き動画を作る';
 }
 function expProgress(p, text){
   exportState.progress = p;
@@ -3480,12 +3482,15 @@ if (document.fonts && document.fonts.ready){
 /* ---------- Beginner workflow ---------- */
 function updateBeginnerGuide(){
   const hasVideo=state.videoLoaded, hasComments=state.comments.length>0;
+  document.body.classList.toggle('has-video',hasVideo);
+  document.body.classList.toggle('has-comments',hasComments);
+  $('#stagePlay').hidden=!hasVideo || !video.paused;
   const current=!hasVideo?'stepVideo':!hasComments && !state.dirty?'stepComment':'stepSave';
   for(const id of ['stepVideo','stepComment','stepSave']){
     const el=$('#'+id);if(id===current)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
     el.classList.toggle('done',id==='stepVideo'?hasVideo:id==='stepComment'?hasComments:hasComments && !state.dirty && !!state.fileName);
   }
-  $('#guideText').textContent=!hasVideo?'まず「1 動画を開く」から、手元の動画を選んでください。':!hasComments && !state.dirty?'動画を動かして好きな場面へ。入力を始めると止まるので、ゆっくり書けます。':state.collab?(collab.connected?'みんなと編集中です。変更は自動で共有されます。':'接続を確認しています。閉じずにお待ちください。'):(!state.comments.length && state.dirty?'コメント一覧は空です。削除をファイルに残すには「コメントを保存」を押してください。':!state.dirty && state.fileName?'コメントファイルは保存済みです。「共有する・一緒に編集」から相手に渡せます。':'「コメントを保存」でファイルを残しましょう。人に渡すときは「共有する・一緒に編集」。');
+  $('#guideText').textContent=!hasVideo?'動画を選ぶ → コメントを書く → 保存・共有':!hasComments && !state.dirty?'動画を動かして好きな場面へ。入力を始めると止まるので、ゆっくり書けます。':state.collab?(collab.connected?'みんなと編集中です。変更は自動で共有されます。':'接続を確認しています。閉じずにお待ちください。'):(!state.comments.length && state.dirty?'コメント一覧は空です。削除をファイルに残すには「コメントを保存」を押してください。':!state.dirty && state.fileName?'コメントファイルは保存済みです。「共有する」から相手に渡せます。':'「コメントを保存」でファイルを残しましょう。人に渡すときは「共有する」。');
   $('#textInput').disabled=!hasVideo;
   $('#btnPost').disabled=!hasVideo;
   $('#btnSave').disabled=!hasComments && !state.dirty;
@@ -3493,8 +3498,9 @@ function updateBeginnerGuide(){
 $('#btnUndo').onclick=undo;$('#btnRedo').onclick=redo;
 document.addEventListener('pointerdown',e=>{const more=$('.more-tools');if(!more.contains(e.target))more.open=false;});
 $('#btnShare').onclick=()=>{
+  shareView(null);
   const live=state.collab;
-  $('#shareOnlineNote').textContent=live?(collab.connected?'この部屋で共同編集中です。参加する人も同じ動画を手元に用意してください。':'今は接続を確認しています。ファイル保存は引き続き使えます。'):'主催者から届いた招待リンクを開いて参加します。このページだけではオンラインの編集部屋を作れません。準備がまだなら、上のファイル共有から始めてください。';
+  $('#shareOnlineNote').textContent=live?(collab.connected?'この部屋で共同編集中です。参加する人も同じ動画を手元に用意してください。':'今は接続を確認しています。ファイル保存は引き続き使えます。'):'主催者から届いた招待リンクを開いて参加します。このページだけではオンラインの編集部屋を作れません。準備がまだなら、「選び直す」から「コメントを渡す」を選んでください。';
   $('#btnCopyInvite').hidden=!live || collab.auth==='otp' || !collab.project;
   $('#btnInviteAdmin').hidden=!live || collab.auth!=='otp' || !collab.session?.admin;
   $('#inviteResult').textContent='';$('#inviteFallback').hidden=true;
@@ -3502,6 +3508,16 @@ $('#btnShare').onclick=()=>{
   $('#btnExport').disabled=!state.videoLoaded;
   $('#shareDlg').showModal();
 };
+function shareView(view){
+  $('#shareChooser').hidden=!!view;$('#shareBack').hidden=!view;
+  for(const el of document.querySelectorAll('[data-share-panel]'))el.hidden=el.dataset.sharePanel!==view;
+  $('#shareTitle').textContent=view?({video:'動画で見てもらう',file:'コメントを渡す',import:'コメントを受け取る',live:'一緒に編集する'})[view]:'なにをしますか？';
+  $('#shareDlg .dlg-body').scrollTop=0;
+}
+for(const b of document.querySelectorAll('[data-share-view]'))b.onclick=()=>{shareView(b.dataset.shareView);$('#shareBack').focus();};
+$('#shareBack').onclick=()=>{shareView(null);$('#shareChooser button').focus();};
+$('#btnPickVideo').onclick=e=>{e.stopPropagation();$('#fileVideo').click();};
+$('#stagePlay').onclick=e=>{e.stopPropagation();togglePlay();};
 $('#shareClose').onclick=()=>$('#shareDlg').close();
 $('#btnShareDownload').onclick=()=>{
   download(serialize('json'),defaultFileName('json'),'application/json');

@@ -7,15 +7,16 @@
 <title>KOME Studio — かんたん動画コメント</title>
 <link rel="stylesheet" href="css/komenagare.css">
 <link rel="stylesheet" href="css/kome-studio.css">
+<link rel="stylesheet" href="css/interaction.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">KOME <b>Studio</b></div>
   <nav class="main-actions" aria-label="主な操作">
-    <button id="btnOpenVideo" class="primary">1 動画を開く</button>
+    <button id="btnOpenVideo">動画を開く</button>
     <button id="btnSave">コメントを保存</button>
-    <button id="btnShare">共有する・一緒に編集</button>
+    <button id="btnShare" class="primary">共有する</button>
   </nav>
   <details class="more-tools">
     <summary>その他</summary>
@@ -35,7 +36,7 @@
 </header>
 <section class="start-guide" aria-label="使い方の3ステップ">
   <ol><li id="stepVideo" aria-current="step"><span>1</span> 動画を開く</li><li id="stepComment"><span>2</span> 好きな場面でコメント</li><li id="stepSave"><span>3</span> 保存して渡す</li></ol>
-  <p id="guideText" role="status">まず「1 動画を開く」から、手元の動画を選んでください。</p>
+  <p id="guideText" role="status">まず「動画を開く」から、手元の動画を選んでください。</p>
 </section>
 <section id="recoveryBanner" class="recovery-banner" aria-label="作業データの復元" hidden>
   <span>このブラウザーに前回の作業データがあります。動画は開き直してください。</span>
@@ -49,10 +50,13 @@
         <canvas id="commentCanvas"></canvas>
         <div class="peer-cursors" id="peerCursors"></div>
         <div class="follow-bar" id="followBar" hidden><span class="dot"></span><span><b id="followName"></b> を追いかけています</span><button id="followStop">やめる</button></div>
+        <button id="stagePlay" class="stage-play" hidden aria-label="動画を再生"><span aria-hidden="true">▶</span> 再生</button>
         <div class="empty" id="emptyState">
-          <div class="empty-title">動画を開くと、ここで再生できます</div>
-          <div class="empty-sub">上の「1 動画を開く」から、手元の動画を選んでください。<br>
-            届いたコメントは「共有する・一緒に編集」から開けます。</div>
+          <div class="drop-icon" aria-hidden="true">＋</div>
+          <h1>動画を選んで、コメントしよう</h1>
+          <p>動画をここに置くか、下のボタンから選べます。</p>
+          <button id="btnPickVideo" class="primary">動画ファイルを選ぶ</button>
+          <span class="privacy-note">動画は端末の中で開きます。アップロードされません。</span>
         </div>
       </div>
       <div class="controls">
@@ -79,22 +83,25 @@
           <button class="icon" id="btnFull" title="フルスクリーン (F)"></button>
         </div>
       </div>
+      <section class="comment-compose" aria-label="コメントを追加">
+        <div class="compose-caption"><label for="textInput">この場面にコメント</label><span class="post-time"><span aria-hidden="true">◷</span> <time id="postAt">0:00</time></span></div>
+<section class="simple-style" aria-label="文字の見た目">
+        <div class="style-grid">
+          <label>位置<select id="stylePosition" data-style-group="pos"><option value="naka">横に流れる</option><option value="ue">上に固定</option><option value="shita">下に固定</option></select></label>
+          <label>大きさ<select id="styleSize" data-style-group="size"><option value="medium">ふつう</option><option value="big">大きい</option><option value="small">小さい</option></select></label>
+          <label>色<select id="styleColor" data-style-group="color"><option value="white">白</option><option value="red">赤</option><option value="pink">ピンク</option><option value="orange">オレンジ</option><option value="yellow">黄色</option><option value="green">緑</option><option value="cyan">水色</option><option value="blue">青</option><option value="purple">紫</option><option value="black">黒</option></select></label>
+        </div>
+      </section>
       <div class="comment-bar">
 
         <input id="cmdInput" type="hidden" value="">
-        <textarea id="textInput" rows="1" aria-label="コメント本文" placeholder="この場面にコメントを書いてみましょう"></textarea>
+        <textarea id="textInput" rows="1" aria-label="コメント本文" placeholder="ここ好き！ など、ひとこと書いてみよう"></textarea>
         <span id="charCount" class="char-count">0</span>
         <button id="btnPost" class="post">コメントする</button>
       </div>
-      <details class="quick-comments"><summary>よく使うコメントを登録する</summary><div class="presets" id="presets"></div></details>
-      <details class="simple-style">
-        <summary>文字の見た目を変える</summary>
-        <div class="style-grid">
-          <label>表示する場所<select id="stylePosition" data-style-group="pos"><option value="naka">横に流れる</option><option value="ue">上に固定</option><option value="shita">下に固定</option></select></label>
-          <label>文字の大きさ<select id="styleSize" data-style-group="size"><option value="medium">ふつう</option><option value="big">大きい</option><option value="small">小さい</option></select></label>
-          <label>文字の色<select id="styleColor" data-style-group="color"><option value="white">白</option><option value="red">赤</option><option value="pink">ピンク</option><option value="orange">オレンジ</option><option value="yellow">黄色</option><option value="green">緑</option><option value="cyan">水色</option><option value="blue">青</option><option value="purple">紫</option><option value="black">黒</option></select></label>
-        </div>
-      </details>
+
+
+      </section>
     </div>
   </section>
 
@@ -117,12 +124,13 @@
       <label class="chk"><input type="checkbox" id="autoScroll" checked> 自動スクロール</label>
     </div>
     <input id="search" class="search" placeholder="コメントを探す" autocomplete="off">
-    <div class="list-head"><span>時間</span><span>コメント</span><span>見た目</span><span>編集</span></div>
-    <p class="list-hint">「編集」から本文や時間を直せます。間違えたら「ひとつ戻す」。</p>
+
+    <p class="list-hint">時間を押すとその場面へ。本文を押すと編集。</p>
     <div class="list" id="list"></div>
     <div class="undo-bar"><button id="btnUndo">ひとつ戻す</button><button id="btnRedo">やり直す</button></div>
     <details class="settings">
       <summary>詳しい設定・保存形式</summary>
+      <details class="quick-comments"><summary>よく使うコメントを登録する</summary><div class="presets" id="presets"></div></details>
       <div class="set-grid">
         <label for="setOpacity">コメントの不透明度</label><input type="range" id="setOpacity" min="0.2" max="1" step="0.05">
         <label for="setPause">コメント入力中は一時停止</label><input type="checkbox" id="setPause">
@@ -350,41 +358,38 @@
 </dialog>
 
 <dialog id="shareDlg" aria-labelledby="shareTitle">
-  <div class="dlg-head" id="shareTitle">共有する・一緒に編集</div>
-  <div class="dlg-body share-cards">
-    <section class="share-card">
-      <h3>コメントをファイルで渡す</h3>
-      <p>まずはこちら。コメントを保存して、メールやチャットで相手に渡します。相手も同じ動画を手元に用意します。</p>
-      <ol><li>下のボタンでコメントファイルを保存</li><li>相手にファイルを渡す</li><li>相手が「受け取ったコメントを開く」で読み込む</li></ol>
-      <button id="btnShareDownload" class="primary">渡すコメントファイルを保存</button>
-      <p class="muted">保存後、メールやチャットにファイルを添付してください。動画は含まれません。元のコメントファイルは上書きしません。</p>
+  <div class="dlg-head" id="shareTitle">なにをしますか？</div>
+  <div class="dlg-body">
+    <div id="shareChooser" class="share-choices">
+      <button class="share-choice" data-share-view="video"><span class="choice-icon" aria-hidden="true">▶</span><span><strong>動画で見てもらう</strong><small>コメントが入った動画を作る</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="file"><span class="choice-icon" aria-hidden="true">↓</span><span><strong>コメントを渡す</strong><small>相手に渡すファイルを保存</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="import"><span class="choice-icon" aria-hidden="true">＋</span><span><strong>コメントを受け取る</strong><small>届いたファイルを開く・追加する</small></span><span aria-hidden="true">›</span></button>
+      <button class="share-choice" data-share-view="live"><span class="choice-icon" aria-hidden="true">◎</span><span><strong>一緒に編集する</strong><small>招待リンクで同じ部屋へ参加</small></span><span aria-hidden="true">›</span></button>
+    </div>
+    <button id="shareBack" class="share-back" hidden>‹ 選び直す</button>
+    <section class="share-card" data-share-panel="file" hidden>
+      <h3>コメントを渡す</h3><p>保存したファイルを、メールやチャットに添付して渡します。動画は含まれないので、相手も同じ動画を用意してください。</p>
+      <button id="btnShareDownload" class="primary">コメントファイルを保存</button>
+      <p class="muted">元のファイルは上書きしません。送信は自分で行います。</p>
     </section>
-    <section class="share-card">
-      <h3>届いたコメントを使う</h3>
-      <p>はじめて開くなら「開く」。自分のコメントも残したいなら「追加する」を選びます。</p>
-      <div class="share-actions"><button id="btnOpenComments">受け取ったコメントを開く</button><button id="btnMerge">今の一覧に追加する</button></div>
+    <section class="share-card" data-share-panel="import" hidden>
+      <h3>コメントを受け取る</h3><p>いまのコメントも残すなら「追加する」を選びます。</p>
+      <div class="share-actions"><button id="btnMerge" class="primary">いまのコメントに追加する</button><button id="btnOpenComments">一覧を入れ替えて開く</button></div>
     </section>
-    <section class="share-card">
-      <h3>コメント入りの動画を渡す</h3>
-      <p>見るだけの相手にはこちら。コメントを動画に重ねて、1つの動画ファイルにします。</p>
-      <button id="btnExport">コメント付き動画を保存</button>
+    <section class="share-card" data-share-panel="video" hidden>
+      <h3>動画で見てもらう</h3><p>コメントを重ねた動画を作ります。相手は動画を開くだけで見られます。</p><button id="btnExport" class="primary">コメント付き動画を作る</button>
     </section>
-    <section class="share-card">
-      <h3>離れた場所から同時に編集する</h3>
-      <p id="shareOnlineNote"></p>
-      <button id="btnCopyInvite" hidden>参加用リンクをコピー</button>
-      <button id="btnInviteAdmin" hidden>招待リンクを用意する</button>
-      <p id="inviteResult" class="muted" role="status"></p>
-      <textarea id="inviteFallback" readonly hidden aria-label="コピーする参加用リンク"></textarea>
+    <section class="share-card" data-share-panel="live" hidden>
+      <h3>一緒に編集する</h3><p id="shareOnlineNote"></p><button id="btnCopyInvite" hidden>参加用リンクをコピー</button><button id="btnInviteAdmin" hidden>招待リンクを用意する</button>
+      <p id="inviteResult" class="muted" role="status"></p><textarea id="inviteFallback" readonly hidden aria-label="コピーする参加用リンク"></textarea>
     </section>
-  </div>
-  <div class="dlg-foot"><button id="shareClose" class="primary">閉じる</button></div>
+  </div><div class="dlg-foot"><button id="shareClose">閉じる</button></div>
 </dialog>
 <dialog id="connectionDlg" aria-labelledby="connectionTitle">
   <div class="dlg-head" id="connectionTitle">オンラインで一緒に編集するには</div>
   <div class="dlg-body help">
     <p>リアルタイムの共同編集は、主催者から届いた<strong>招待リンク</strong>を開いて参加します。全員が同じ動画を手元に用意してください。</p>
-    <p>招待リンクがない場合は「共有する・一緒に編集」からコメントファイルを渡せます。こちらは準備不要です。</p>
+    <p>招待リンクがない場合は「共有する」からコメントファイルを渡せます。こちらは準備不要です。</p>
     <p>このページだけではオンラインの編集部屋は作れません。主催者側の準備が必要です。参加者がコマンドを入力したり、サーバーを起動したりする必要はありません。</p>
     <p>主催者側の接続先の準備方法は同梱のREADMEに分けています。このアプリが勝手に外部サービスを起動することはありません。</p>
   </div><div class="dlg-foot"><button id="connectionClose" class="primary">閉じる</button></div>
@@ -392,12 +397,12 @@
 <dialog id="helpDlg" aria-labelledby="helpTitle">
   <div class="dlg-head" id="helpTitle">はじめての使い方</div>
   <div class="dlg-body help">
-    <h4>1. 動画を開く</h4><p>「1 動画を開く」から手元の動画を選びます。動画はこのアプリにアップロードされません。</p>
+    <h4>1. 動画を開く</h4><p>「動画を開く」から手元の動画を選びます。動画はこのアプリにアップロードされません。</p>
     <h4>2. 好きな場面でコメント</h4><p>動画を再生して、コメントしたい場面で入力欄に書きます。入力を始めると一時停止します。「コメントする」でその場面に追加できます。</p>
-    <p>色や大きさは「文字の見た目を変える」で選べます。何も変えず、そのままでも使えます。</p>
+    <p>色や大きさは入力欄の上にある選択肢で選べます。何も変えず、そのままでも使えます。</p>
     <h4>直したい・間違えたとき</h4><p>一覧の「編集」で本文や表示時間を直します。削除も編集画面からできます。直前の操作は「ひとつ戻す」で取り消せます。</p>
     <h4>3. 保存して渡す</h4><p>「コメントを保存」でファイルを残します。ブラウザーの作業メモとは別に、ファイルも保存してください。</p>
-    <p>「共有する・一緒に編集」では、ファイルを渡す・届いたコメントを追加する・コメント入り動画を作る、の3つから選べます。別々に作業したファイルもまとめられます。</p>
+    <p>「共有する」では、ファイルを渡す・届いたコメントを追加する・コメント入り動画を作る、の3つから選べます。別々に作業したファイルもまとめられます。</p>
     <h4>同時に編集したいとき</h4><p>主催者の招待リンクを開いて参加します。招待リンクがないときは、まずファイルを渡す方法を使ってください。同じコメントを同時に直した場合は、画面でどちらを残すか選べます。</p>
     <h4>コメントが見えないとき</h4><p>そのコメントの時間まで動画を動かしてください。別の動画では時間が合わないため、共同編集では全員が同じ動画を使います。</p>
     <h4>細かく調整したいとき</h4><p>「その他」→「細かく時間を調整する」で時間の調整画面を開けます。普段は使わなくてもかまいません。</p>

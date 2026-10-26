@@ -14,6 +14,7 @@
     "js/kome-compat.js",
     "legacy.html",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "css/interaction.css"
   ]
 }
