@@ -1,1755 +1,457 @@
+<!-- Modified for KOME Studio; upstream revision and attribution: NOTICE. -->
 <!doctype html>
 <html lang="ja">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KOME Studio — ローカル動画コメントエディター</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #f9f8f7;
-      --surface: #fff;
-      --soft: #f0efed;
-      --text: #292928;
-      --muted: #686560;
-      --line: #dedcd8;
-      --blue: #216fc0;
-      --blue-soft: #e5f2fc;
-      --green: #277547;
-      --red: #be4037;
-      --shadow: 0 1px 2px #00000005;
-      --r: 12px
-    }
-
-    * {
-      box-sizing: border-box
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif
-    }
-
-    button,
-    input,
-    select,
-    textarea {
-      font: inherit
-    }
-
-    button {
-      cursor: pointer
-    }
-
-    button,
-    input,
-    select,
-    textarea {
-      outline-offset: 3px
-    }
-
-    button:focus-visible,
-    input:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible,
-    a:focus-visible {
-      outline: 3px solid var(--blue)
-    }
-
-    button {
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      color: var(--text);
-      padding: 8px 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-weight: 600;
-      white-space: nowrap
-    }
-
-    button:hover {
-      background: var(--soft)
-    }
-
-    button:disabled {
-      opacity: .45;
-      cursor: not-allowed
-    }
-
-    button.primary {
-      background: var(--blue);
-      border-color: var(--blue);
-      color: #fff
-    }
-
-    button.primary:hover {
-      filter: brightness(.94)
-    }
-
-    button.ghost {
-      border-color: transparent;
-      background: transparent
-    }
-
-    button.danger {
-      color: var(--red)
-    }
-
-    .icon {
-      width: 20px;
-      height: 20px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.7;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      flex-shrink: 0
-    }
-
-    .iconbtn {
-      padding: 8px;
-      width: 44px;
-      flex-shrink: 0
-    }
-
-    .hidden,
-    [hidden] {
-      display: none !important
-    }
-
-    .muted {
-      color: var(--muted)
-    }
-
-    .small {
-      font-size: 14px
-    }
-
-    .mono {
-      font-family: Consolas, ui-monospace, monospace;
-      font-variant-numeric: tabular-nums
-    }
-
-    .eyebrow {
-      font: 600 12px/1.4 ui-monospace, monospace;
-      letter-spacing: .12em;
-      color: var(--muted)
-    }
-
-    header {
-      height: 80px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface)
-    }
-
-    .header-inner {
-      max-width: 1480px;
-      margin: auto;
-      padding: 0 32px;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px
-    }
-
-    .brand {
-      display: flex;
-      gap: 12px;
-      align-items: center
-    }
-
-    .brandmark {
-      width: 36px;
-      height: 36px;
-      background: var(--text);
-      color: var(--surface);
-      display: grid;
-      place-items: center;
-      border-radius: 9px
-    }
-
-    .wordmark {
-      font-size: 21px;
-      font-weight: 750;
-      letter-spacing: -.7px
-    }
-
-    .wordmark span {
-      font-weight: 400;
-      color: var(--muted)
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .local-badge {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 13px;
-      color: var(--muted);
-      margin-right: 12px
-    }
-
-    .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 100%;
-      background: #378257
-    }
-
-    main {
-      max-width: 1480px;
-      margin: 0 auto;
-      padding: 28px 32px 32px
-    }
-
-    .intro {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 24px
-    }
-
-    .intro h1 {
-      font-size: 26px;
-      letter-spacing: -.6px;
-      margin: 0 0 4px;
-      line-height: 1.4
-    }
-
-    .intro p {
-      margin: 0;
-      font-size: 14px;
-      color: var(--muted)
-    }
-
-    .workspace {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
-      gap: 24px;
-      align-items: start
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--r);
-      overflow: hidden;
-      box-shadow: var(--shadow)
-    }
-
-    .section-head {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      min-height: 62px
-    }
-
-    .section-head h2 {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 650
-    }
-
-    .title-line {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      min-width: 0
-    }
-
-    .file-name {
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 300px;
-      color: var(--muted)
-    }
-
-    .tag {
-      font-size: 12px;
-      background: var(--soft);
-      padding: 3px 7px;
-      border-radius: 4px;
-      color: var(--muted);
-      white-space: nowrap
-    }
-
-    .stage {
-      position: relative;
-      aspect-ratio: 16/9;
-      background: #111315;
-      isolation: isolate;
-      overflow: hidden
-    }
-
-    .stage video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block
-    }
-
-    .stage canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none
-    }
-
-    .stage:fullscreen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      background: #000;
-      aspect-ratio: auto
-    }
-
-    .stage:fullscreen video {
-      position: absolute;
-      inset: 0
-    }
-
-    .stage:fullscreen canvas {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 16/9;
-      max-height: 100%;
-      object-fit: contain;
-      inset: 50% auto auto 50%;
-      transform: translate(-50%, -50%)
-    }
-
-    .empty-player {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #f7f7f6;
-      padding: 24px;
-      text-align: center;
-      background: radial-gradient(ellipse at 50% 40%, #242a32, #111315 75%)
-    }
-
-    .empty-icon {
-      display: grid;
-      place-items: center;
-      width: 64px;
-      height: 64px;
-      border: 1px solid #4b5159;
-      border-radius: 16px;
-      margin-bottom: 20px;
-      color: #bbc9d9
-    }
-
-    .empty-icon svg {
-      width: 30px;
-      height: 30px
-    }
-
-    .empty-player h2 {
-      font-size: 22px;
-      font-weight: 600;
-      margin: 0 0 8px
-    }
-
-    .empty-player p {
-      font-size: 14px;
-      color: #b4b8bd;
-      margin: 0 0 20px
-    }
-
-    .empty-player .small {
-      font-size: 12px;
-      color: #a6abb2;
-      margin-top: 14px
-    }
-
-    .drop-hint {
-      display: none;
-      position: absolute;
-      inset: 8px;
-      border: 2px dashed #6fa9ee;
-      background: #14263be6;
-      color: white;
-      z-index: 10;
-      place-items: center;
-      font-size: 20px;
-      border-radius: 8px
-    }
-
-    .stage.drag .drop-hint {
-      display: grid
-    }
-
-    .controlbar {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--line)
-    }
-
-    .seek {
-      width: 100%;
-      height: 20px;
-      accent-color: var(--blue);
-      margin: 0;
-      cursor: pointer
-    }
-
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 6px
-    }
-
-    .controls .time {
-      font-size: 13px;
-      margin: 0 4px;
-      white-space: nowrap
-    }
-
-    .controls .spacer {
-      flex: 1
-    }
-
-    .controls select {
-      width: 76px;
-      padding: 5px;
-      min-height: 40px
-    }
-
-    .switch {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      white-space: nowrap;
-      cursor: pointer
-    }
-
-    .switch input {
-      width: 16px;
-      height: 16px;
-      accent-color: var(--blue)
-    }
-
-    .controls input[type=range] {
-      width: 66px;
-      accent-color: var(--blue)
-    }
-
-    select,
-    input[type=text],
-    input[type=number],
-    input[type=search],
-    textarea {
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      color: var(--text);
-      background: var(--surface);
-      padding: 10px;
-      min-width: 0
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 70px;
-      width: 100%;
-      display: block;
-      line-height: 1.5
-    }
-
-    select {
-      min-height: 44px
-    }
-
-    .composer {
-      padding: 18px
-    }
-
-    .compose-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px
-    }
-
-    .compose-heading strong {
-      font-size: 15px
-    }
-
-    .time-pill {
-      color: var(--blue);
-      background: var(--blue-soft);
-      font-size: 13px;
-      padding: 4px 8px;
-      border-radius: 5px
-    }
-
-    .style-bar {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px
-    }
-
-    .style-bar label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--muted)
-    }
-
-    .style-bar select {
-      font-size: 14px;
-      padding: 8px;
-      max-width: 112px
-    }
-
-    .style-bar input[type=color] {
-      border: 1px solid var(--line);
-      background: var(--surface);
-      border-radius: 7px;
-      padding: 6px;
-      width: 44px;
-      height: 44px;
-      cursor: pointer
-    }
-
-    .compose-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-top: 12px
-    }
-
-    .compose-bottom .hint {
-      font-size: 12px;
-      color: var(--muted)
-    }
-
-    .compose-bottom .actions {
-      display: flex;
-      gap: 8px
-    }
-
-    .advanced {
-      margin: 12px 0 0;
-      font-size: 13px
-    }
-
-    .advanced summary {
-      color: var(--muted);
-      cursor: pointer;
-      min-height: 44px;
-      padding: 10px 0
-    }
-
-    .advanced-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 10px 0
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 14px
-    }
-
-    .field input,
-    .field select {
-      width: 100%
-    }
-
-    .preview-code {
-      font: 12px/1.6 Consolas, monospace;
-      color: var(--muted);
-      overflow-wrap: anywhere;
-      margin-top: 8px
-    }
-
-    .hint-box {
-      font-size: 13px;
-      color: var(--muted);
-      padding: 14px 2px;
-      display: flex;
-      gap: 8px;
-      align-items: flex-start
-    }
-
-    .hint-box svg {
-      width: 16px;
-      height: 16px;
-      margin-top: 2px
-    }
-
-    .side {
-      display: flex;
-      flex-direction: column;
-      gap: 16px
-    }
-
-    .side .section-head {
-      border-bottom: 1px solid var(--line)
-    }
-
-    .list-tools {
-      padding: 12px 14px;
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .list-tools input {
-      width: 100%;
-      font-size: 14px;
-      min-height: 44px
-    }
-
-    .list-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px 10px;
-      font-size: 12px;
-      color: var(--muted)
-    }
-
-    .comment-list {
-      height: 390px;
-      overflow: auto;
-      border-top: 1px solid var(--line)
-    }
-
-    .list-empty {
-      padding: 64px 24px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 14px
-    }
-
-    .list-empty svg {
-      margin-bottom: 12px;
-      width: 28px;
-      height: 28px
-    }
-
-    .comment-row {
-      border-bottom: 1px solid var(--line);
-      padding: 12px 14px;
-      display: grid;
-      grid-template-columns: 64px minmax(0, 1fr);
-      gap: 8px
-    }
-
-    .comment-row.active {
-      background: var(--blue-soft)
-    }
-
-    .comment-row .jump {
-      border: 0;
-      padding: 0;
-      background: none;
-      color: var(--blue);
-      font: 13px/1.5 Consolas, monospace;
-      justify-content: flex-start;
-      align-self: start;
-      min-height: 28px;
-      min-width: 0
-    }
-
-    .row-body {
-      min-width: 0
-    }
-
-    .row-text {
-      font-size: 14px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere
-    }
-
-    .row-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      margin-top: 5px
-    }
-
-    .row-style {
-      font-size: 11px;
-      color: var(--muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap
-    }
-
-    .row-actions {
-      display: flex;
-      gap: 2px
-    }
-
-    .row-actions button {
-      width: 44px;
-      height: 44px;
-      min-height: 44px;
-      padding: 6px;
-      border: 0;
-      background: transparent
-    }
-
-    .row-actions svg {
-      width: 15px;
-      height: 15px
-    }
-
-    .list-footer {
-      padding: 12px 14px;
-      border-top: 1px solid var(--line);
-      display: flex;
-      gap: 8px
-    }
-
-    .list-footer button {
-      flex: 1;
-      font-size: 14px
-    }
-
-    .share-card {
-      padding: 18px
-    }
-
-    .share-card h3 {
-      font-size: 14px;
-      margin: 0 0 8px
-    }
-
-    .share-card p {
-      font-size: 13px;
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.7
-    }
-
-    .share-steps {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--blue);
-      margin-top: 14px;
-      flex-wrap: wrap
-    }
-
-    .share-steps span:not(.arrow) {
-      background: var(--blue-soft);
-      border-radius: 4px;
-      padding: 5px 7px
-    }
-
-    .status-line {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 14px;
-      display: flex;
-      gap: 6px;
-      align-items: center
-    }
-
-    .status-line .dot {
-      width: 5px;
-      height: 5px
-    }
-
-    footer {
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 24px 0 0;
-      border-top: 1px solid var(--line);
-      margin-top: 12px
-    }
-
-    footer button {
-      font-size: 12px;
-      min-height: 24px;
-      padding: 0 !important;
-      text-decoration: underline
-    }
-
-    dialog {
-      max-width: 680px;
-      width: calc(100% - 32px);
-      max-height: 85vh;
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--surface);
-      color: var(--text);
-      padding: 0;
-      box-shadow: 0 20px 80px #0003
-    }
-
-    dialog::backdrop {
-      background: #0008
-    }
-
-    .dialog-head {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: var(--surface);
-      padding: 20px 24px 12px;
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center
-    }
-
-    .dialog-head h2 {
-      font-size: 21px;
-      margin: 0
-    }
-
-    .dialog-body {
-      padding: 4px 24px 24px;
-      font-size: 14px
-    }
-
-    .dialog-body h3 {
-      font-size: 16px;
-      margin-top: 24px
-    }
-
-    .dialog-body p {
-      line-height: 1.8
-    }
-
-    .dialog-body ul {
-      padding-left: 20px;
-      line-height: 1.8
-    }
-
-    .dialog-body pre {
-      background: var(--soft);
-      padding: 14px;
-      overflow: auto;
-      border-radius: 8px;
-      font-size: 12px
-    }
-
-    .dialog-body table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px
-    }
-
-    .dialog-body th,
-    .dialog-body td {
-      text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top
-    }
-
-    .dialog-body code {
-      font: 12px/1.5 Consolas, monospace;
-      background: var(--soft);
-      padding: 2px 4px;
-      border-radius: 3px
-    }
-
-    .dialog-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 20px;
-      flex-wrap: wrap
-    }
-
-    .notice {
-      padding: 12px 14px;
-      background: var(--blue-soft);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 13px;
-      line-height: 1.8
-    }
-
-    .warn {
-      background: #fbebde;
-      color: #744416
-    }
-
-    .two-fields {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 16px 0
-    }
-
-    .toast {
-      position: static;
-      margin: 0 0 16px;
-      background: var(--text);
-      color: var(--surface);
-      border: 1px solid var(--line);
-      padding: 12px 18px;
-      max-width: none;
-      border-radius: 8px;
-      z-index: 100;
-      font-size: 14px;
-      box-shadow: 0 4px 24px #0002
-    }
-
-    .recording-panel {
-      background: #fbebde;
-      color: #744416;
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 14px
-    }
-
-    .recording-panel progress {
-      display: block;
-      width: 100%;
-      margin-top: 6px;
-      accent-color: #a76425
-    }
-
-    .recording-panel .record-details {
-      flex: 1
-    }
-
-    .recording-panel button {
-      background: #fff;
-      color: #744416
-    }
-
-    .result-link {
-      display: block;
-      background: var(--blue);
-      color: #fff;
-      text-decoration: none;
-      padding: 12px;
-      border-radius: 8px;
-      text-align: center;
-      margin-top: 12px;
-      font-weight: 600
-    }
-
-    .form-error {
-      color: var(--red);
-      font-size: 13px;
-      min-height: 20px;
-      margin-top: 8px
-    }
-
-    .duration-warning {
-      font-size: 12px;
-      color: var(--red);
-      padding: 0 16px 10px
-    }
-
-    .recover {
-      padding: 12px 16px;
-      border: 1px solid var(--line);
-      background: var(--blue-soft);
-      border-radius: 8px;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      font-size: 14px
-    }
-
-    .recover .spacer {
-      flex: 1
-    }
-
-    @media(prefers-color-scheme:dark) {
-      :root {
-        --bg: #191919;
-        --surface: #202020;
-        --soft: #30302e;
-        --text: #f3f3f1;
-        --muted: #b7b6b1;
-        --line: #44443f;
-        --blue: #5e9fe8;
-        --blue-soft: #25384c;
-        --green: #72bc8f;
-        --red: #ff9b90
-      }
-
-      button.primary {
-        color: #111c29
-      }
-
-      .notice.warn,
-      .recording-panel {
-        background: #3b2d20;
-        color: #f4c79b
-      }
-
-      .recording-panel button {
-        background: #4b3928;
-        color: #fff
-      }
-    }
-
-    @media(min-width:1500px) {
-      .comment-list {
-        height: 470px
-      }
-    }
-
-    @media(max-width:1080px) {
-      .workspace {
-        grid-template-columns: minmax(0, 1fr) 320px;
-        gap: 16px
-      }
-
-      .header-inner,
-      main {
-        padding-left: 24px;
-        padding-right: 24px
-      }
-
-      .controls .volume {
-        display: none
-      }
-
-      .file-name {
-        max-width: 180px
-      }
-
-      .intro h1 {
-        font-size: 23px
-      }
-
-      .local-badge {
-        display: none
-      }
-
-      .style-bar {
-        gap: 6px
-      }
-
-      .style-bar label {
-        gap: 4px
-      }
-
-      .controls {
-        gap: 3px
-      }
-    }
-
-    @media(max-width:850px) {
-      .workspace {
-        grid-template-columns: 1fr
-      }
-
-      .comment-list {
-        height: 340px
-      }
-
-      .side {
-        display: grid;
-        grid-template-columns: 1fr
-      }
-
-      .share-card {
-        display: none
-      }
-
-      .file-name {
-        max-width: 50vw
-      }
-
-      .header-actions .export-label {
-        display: none
-      }
-
-      .intro {
-        align-items: start
-      }
-
-      .intro h1 {
-        font-size: 23px
-      }
-
-      .intro .eyebrow {
-        display: none
-      }
-
-      main {
-        padding-top: 24px
-      }
-
-      .controls .volume {
-        display: block
-      }
-
-      .header-inner {
-        padding-left: 20px;
-        padding-right: 20px
-      }
-    }
-
-    @media(max-width:480px) {
-      header {
-        height: 68px
-      }
-
-      .header-inner {
-        padding: 0 16px
-      }
-
-      .brand {
-        gap: 8px
-      }
-
-      .wordmark {
-        font-size: 18px
-      }
-
-      .brandmark {
-        width: 30px;
-        height: 30px;
-        border-radius: 7px
-      }
-
-      .header-actions {
-        gap: 2px
-      }
-
-      .header-actions button {
-        padding: 8px
-      }
-
-      .header-actions .help-label {
-        display: none
-      }
-
-      main {
-        padding: 20px 16px
-      }
-
-      .intro {
-        margin-bottom: 16px
-      }
-
-      .intro h1 {
-        font-size: 22px
-      }
-
-      .intro p {
-        font-size: 13px
-      }
-
-      .section-head {
-        padding: 10px 12px
-      }
-
-      .section-head .eyebrow {
-        display: none
-      }
-
-      .file-name {
-        max-width: 155px
-      }
-
-      .empty-icon {
-        display: none
-      }
-
-      .empty-player h2 {
-        font-size: 18px
-      }
-
-      .empty-player p {
-        font-size: 12px;
-        margin-bottom: 12px
-      }
-
-      .empty-player .small {
-        display: none
-      }
-
-      .empty-player {
-        padding: 16px
-      }
-
-      .controlbar {
-        padding: 8px
-      }
-
-      .controls {
-        gap: 0
-      }
-
-      .controls .time {
-        font-size: 11px;
-        margin: 0 3px
-      }
-
-      .controls .volume {
-        display: none
-      }
-
-      .controls select {
-        font-size: 12px;
-        width: 61px;
-        min-height: 44px
-      }
-
-      .controls .switch {
-        font-size: 11px
-      }
-
-      .controls .iconbtn {
-        width: 44px;
-        min-height: 44px;
-        padding: 8px
-      }
-
-      .composer {
-        padding: 14px
-      }
-
-      .style-bar label {
-        font-size: 12px
-      }
-
-      .style-bar select {
-        font-size: 12px;
-        padding: 6px;
-        max-width: 95px
-      }
-
-      .compose-bottom {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 10px
-      }
-
-      .compose-bottom .actions {
-        width: 100%;
-        justify-content: flex-end
-      }
-
-      .compose-bottom .actions .primary {
-        flex: 1
-      }
-
-      .advanced-grid,
-      .two-fields {
-        grid-template-columns: 1fr
-      }
-
-      .dialog-head {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: var(--surface);
-        padding: 16px 18px 8px
-      }
-
-      .dialog-head h2 {
-        font-size: 19px
-      }
-
-      .dialog-body {
-        padding: 4px 18px 18px
-      }
-
-      .intro .eyebrow {
-        display: none
-      }
-
-      footer {
-        flex-direction: column;
-        gap: 6px
-      }
-
-      .recording-panel {
-        flex-direction: column;
-        align-items: stretch
-      }
-    }
-
-    @media(prefers-reduced-motion:reduce) {
-      * {
-        scroll-behavior: auto !important
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOME Studio — komenagare互換エディター</title>
+<link rel="stylesheet" href="css/komenagare.css">
+<link rel="stylesheet" href="css/kome-studio.css">
 </head>
-
 <body>
-  <svg style="display:none" aria-hidden="true">
-    <defs>
-      <symbol id="i-chat" viewBox="0 0 24 24">
-        <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-        <path d="M7 9h10M7 13h6" />
-      </symbol>
-      <symbol id="i-open" viewBox="0 0 24 24">
-        <path d="M3 8V5h6l2 3h10l-3 11H3V8Z" />
-        <path d="M3 8h9" />
-      </symbol>
-      <symbol id="i-upload" viewBox="0 0 24 24">
-        <path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" />
-      </symbol>
-      <symbol id="i-download" viewBox="0 0 24 24">
-        <path d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5" />
-      </symbol>
-      <symbol id="i-play" viewBox="0 0 24 24">
-        <path d="m8 4 12 8-12 8Z" />
-      </symbol>
-      <symbol id="i-pause" viewBox="0 0 24 24">
-        <path d="M8 5v14M16 5v14" />
-      </symbol>
-      <symbol id="i-expand" viewBox="0 0 24 24">
-        <path d="M4 9V4h5m6 0h5v5m0 6v5h-5M9 20H4v-5" />
-      </symbol>
-      <symbol id="i-help" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M9.5 8.5a2.5 2.5 0 1 1 3.5 2.3c-1 .5-1 1-1 2.2m0 3h.01" />
-      </symbol>
-      <symbol id="i-close" viewBox="0 0 24 24">
-        <path d="m6 6 12 12M6 18 18 6" />
-      </symbol>
-      <symbol id="i-edit" viewBox="0 0 24 24">
-        <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Z" />
-      </symbol>
-      <symbol id="i-trash" viewBox="0 0 24 24">
-        <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
-      </symbol>
-      <symbol id="i-send" viewBox="0 0 24 24">
-        <path d="m3 3 19 9-19 9 4-9Zm4 9h15" />
-      </symbol>
-    </defs>
-  </svg>
-  <header>
-    <div class="header-inner">
-      <div class="brand"><span class="brandmark"><svg class="icon">
-            <use href="#i-chat" />
-          </svg></span>
-        <div class="wordmark">KOME <span>Studio</span></div>
-      </div>
-      <div class="header-actions"><span class="local-badge"><span class="dot"></span>LOCAL / OFFLINE</span><button
-          id="helpBtn" class="ghost" aria-label="使い方"><svg class="icon">
-            <use href="#i-help" />
-          </svg><span class="help-label">使い方</span></button><button id="exportBtn" aria-label="コメント付き動画を書き出す"
-          title="コメント付き動画を書き出す" disabled><svg class="icon">
-            <use href="#i-download" />
-          </svg><span class="export-label">動画を書き出す</span></button></div>
-    </div>
-  </header>
-  <main>
-    <div class="intro">
-      <div>
-        <h1>動画に、みんなのひとことを。</h1>
-        <p>動画を開く。コメントを重ねる。JSONで、続きをつなぐ。</p>
-      </div><span class="eyebrow">A SHARED TIMELINE, ON YOUR DEVICE.</span>
-    </div>
-    <div id="toast" class="toast" role="status" hidden></div>
-    <div id="recoverBanner" class="recover" hidden><span>この端末に、未再開の作業データがあります。</span><span class="spacer"></span><button
-        id="restoreBtn">復元する</button><button id="discardRecovery" class="ghost">使わない</button></div>
-    <div class="workspace">
-      <div class="left">
-        <section class="card" aria-label="動画とコメントの編集">
-          <div class="section-head">
-            <div class="title-line"><span class="eyebrow">01 / PLAYER</span><span id="videoName"
-                class="file-name">動画が選択されていません</span></div><button id="openVideoBtn" class="iconbtn ghost" title="動画を開く"
-              aria-label="動画を開く"><svg class="icon">
-                <use href="#i-open" />
-              </svg></button>
-          </div>
-          <div id="stage" class="stage"><video id="video" playsinline preload="metadata"></video><canvas id="overlay"
-              width="960" height="540" aria-label="動画に同期したコメント表示"></canvas>
-            <div id="emptyPlayer" class="empty-player">
-              <div class="empty-icon"><svg class="icon">
-                  <use href="#i-play" />
-                </svg></div>
-              <h2>ここから、ひとことが動き出す。</h2>
-              <p>手元の動画を読み込んで、コメントを作成できます。</p><button id="emptyOpenBtn" class="primary"><svg class="icon">
-                  <use href="#i-open" />
-                </svg>動画を開く</button><span class="small">動画をドロップしても開始できます · アップロード不要</span>
-            </div>
-            <div class="drop-hint">動画またはコメントJSONをドロップ</div>
-          </div>
-          <div id="recordPanel" class="recording-panel" hidden>
-            <div class="record-details"><strong id="recordLabel">書き出し中</strong><progress id="recordProgress" max="1"
-                value="0"></progress><span class="small">このタブを前面にしたままお待ちください。</span></div><button
-              id="stopRecord">ここまでを保存</button>
-          </div>
-          <div class="controlbar"><input id="seek" class="seek" type="range" min="0" max="1" value="0" step="0.01"
-              aria-label="動画の再生位置" disabled>
-            <div class="controls"><button id="playBtn" class="iconbtn ghost" aria-label="再生" disabled><svg class="icon">
-                  <use href="#i-play" />
-                </svg></button><span class="time mono"><span id="currentTime">00:00.000</span><span class="muted"> /
-                  <span id="duration">00:00</span></span></span>
-              <div class="spacer"></div><label class="switch"><input type="checkbox" id="showComments"
-                  checked>コメ表示</label><select id="playRate" aria-label="再生速度">
-                <option value="0.5">0.5×</option>
-                <option value="0.75">0.75×</option>
-                <option value="1" selected>1×</option>
-                <option value="1.25">1.25×</option>
-                <option value="1.5">1.5×</option>
-                <option value="2">2×</option>
-              </select><input id="volume" class="volume" type="range" min="0" max="1" value="1" step="0.05"
-                aria-label="音量"><button id="fullscreenBtn" class="iconbtn ghost" aria-label="全画面表示"
-                title="全画面（Escで終了）"><svg class="icon">
-                  <use href="#i-expand" />
-                </svg></button>
-            </div>
-          </div>
-          <div class="composer">
-            <div class="compose-heading"><strong id="composeTitle">コメントを作成</strong><span id="timePill"
-                class="time-pill mono">00:00.000 に投稿</span></div>
-            <div class="style-bar"><label>位置<select id="position">
-                  <option value="naka">流れる</option>
-                  <option value="ue">上固定</option>
-                  <option value="shita">下固定</option>
-                </select></label><label>サイズ<select id="size">
-                  <option value="small">小</option>
-                  <option value="medium" selected>中</option>
-                  <option value="big">大</option>
-                </select></label><label>色<input id="color" type="color" value="#ffffff"
-                  aria-label="コメントの色"></label><label>速度<select id="speed">
-                  <option value="0.5">0.5×</option>
-                  <option value="0.75">0.75×</option>
-                  <option value="1" selected>1×</option>
-                  <option value="1.5">1.5×</option>
-                  <option value="2">2×</option>
-                </select></label></div>
-            <textarea id="commentText" rows="2" maxlength="4000" placeholder="この瞬間に、ひとこと。"
-              aria-label="コメント本文"></textarea>
-            <details class="advanced">
-              <summary>時刻・フォント・コマンドを調整</summary>
-              <div class="advanced-grid"><label class="field">投稿時刻（空欄なら投稿時の再生位置）<input id="postTime" type="text"
-                    placeholder="例：12.5 / 01:23.500" autocomplete="off"></label><label class="field">フォント<select
-                    id="font">
-                    <option value="gothic">ゴシック</option>
-                    <option value="mincho">明朝</option>
-                    <option value="mono">等幅</option>
-                  </select></label></div><label class="switch"><input id="rawMode"
-                  type="checkbox">本文に直接コマンドを書く（上の装飾設定を無視）</label>
-              <div class="preview-code" id="commandPreview">[naka medium #ffffff speed=1 font=gothic]</div>
-            </details>
-            <div id="composeError" class="form-error" role="alert" hidden></div>
-            <div class="compose-bottom"><span class="hint">Ctrl / ⌘ + Enter で投稿 · 改行も使えます</span>
-              <div class="actions"><button id="cancelEdit" class="ghost" hidden>編集をやめる</button><button id="postBtn"
-                  class="primary"><svg class="icon">
-                    <use href="#i-send" />
-                  </svg><span>コメントする</span></button></div>
-            </div>
-          </div>
-        </section>
-        <div class="hint-box"><svg class="icon">
-            <use href="#i-help" />
-          </svg><span>コメントは再生時刻に同期します。停止・シーク・倍速でも位置を再計算。動画とJSONをセットで共有してください。</span></div>
-      </div>
-      <aside class="side">
-        <section class="card" aria-label="コメント一覧">
-          <div class="section-head">
-            <div class="title-line">
-              <h2>コメント</h2><span id="commentCount" class="tag">0</span>
-            </div><button id="importBtn" class="ghost iconbtn" title="コメントJSONを読み込む" aria-label="コメントJSONを読み込む"><svg
-                class="icon">
-                <use href="#i-upload" />
-              </svg></button>
-          </div>
-          <div class="list-tools"><input id="search" type="search" placeholder="コメントを検索" aria-label="コメントを検索"></div>
-          <div class="list-meta"><span id="listSummary">時刻順</span><span>時刻を押して移動</span></div>
-          <div id="durationWarning" class="duration-warning" hidden></div>
-          <div id="commentList" class="comment-list">
-            <div class="list-empty"><svg class="icon">
-                <use href="#i-chat" />
-              </svg>
-              <div>まだ、静かなタイムライン。</div>
-              <div class="small" style="margin-top:8px">投稿するか、JSONを読み込みましょう。</div>
-            </div>
-          </div>
-          <div class="list-footer"><button id="importTextBtn"><svg class="icon">
-                <use href="#i-upload" />
-              </svg>JSONを開く</button><button id="saveBtn" class="primary"><svg class="icon">
-                <use href="#i-download" />
-              </svg>JSONを保存</button></div>
-        </section>
-        <section class="card share-card">
-          <h3>ファイルで、続きをつなぐ。</h3>
-          <p>同じ動画と最新のJSONを相手に渡すだけ。受け取った人がコメントを足し、保存して返せます。別々に編集したJSONは重複を除いて統合できます。</p>
-          <div class="share-steps"><span>動画＋JSON</span><span class="arrow">→</span><span>コメントを追加</span><span
-              class="arrow">→</span><span>保存・共有</span></div>
-        </section>
-        <div class="status-line"><span class="dot"></span><span id="saveStatus">通信なし · 動画は端末の外に送信されません</span></div>
-      </aside>
-    </div>
-    <footer><span>ニコニコ風の独自実装です。公式サービス・完全互換のプレイヤーではありません。</span><button id="sampleBtn" class="ghost">サンプルコメントを追加</button>
-    </footer>
-  </main>
-  <input type="file" id="videoInput" accept="video/*,.mkv,.webm,.mp4,.mov,.m4v,.ogv" hidden><input type="file"
-    id="jsonInput" accept=".json,application/json" multiple hidden>
-  <dialog id="helpDialog">
-    <div class="dialog-head">
-      <h2>使い方とファイル仕様</h2><button class="iconbtn ghost" data-close aria-label="閉じる"><svg class="icon">
-          <use href="#i-close" />
-        </svg></button>
-    </div>
-    <div class="dialog-body">
-      <div class="notice">このHTMLを保存し、Chrome / Edge などのブラウザーで直接開いて使えます。外部ライブラリー・サーバー・通信は不要です。</div>
-      <h3>01 — 動画を選んでコメントする</h3>
-      <p>
-        動画を開き、再生位置を合わせて本文を入力します。投稿時刻を固定したいときは詳細設定で指定してください。再生中の通常投稿は送信した瞬間の時刻になります。時刻欄をクリックするか本文に入力し始めると動画を一時停止するので、細かいタイミングも調整できます。
-      </p>
-      <p>コメント一覧の時刻でシーク、鉛筆で編集、ゴミ箱で削除できます。スペースキーで再生／停止、左右キーで5秒移動（入力中・ダイアログ中は除外）。</p>
-      <h3>02 — JSONで共有する</h3>
-      <p>保存内容は <b>時刻（秒）と、装飾コマンドを含む内容だけ</b>。UTF-8のJSONで保存します。動画本体やユーザー情報は含みません。</p>
-      <pre>[
-  {"time": 1.25, "content": "[naka medium white]こんにちは！"},
-  {"time": 5, "content": "[ue big red]ここに注目"},
-  {"time": 8.5, "content": "[shita small #66ccff]下に表示"},
-  {"time": 10, "content": "[naka big speed=0.5]ゆっくり流れる"}
-]</pre>
-      <p>読み込んだあとに投稿した分は同じ一覧へ追加され、次の保存に含まれます。「JSONを保存」は更新版をダウンロードします。元ファイルは自動上書きしません。共有前には必ず保存してください。</p>
-      <p>
-        複数JSONの統合は「時刻（ミリ秒に丸める）＋内容」が同一のコメントを1件にまとめます。同時刻・同一内容を意図的に複数投稿した場合も、統合時には1件になります。IDを持たないため、<b>編集・削除の競合は自動解決できません</b>。基本は最新版を順番に受け渡してください。同じ長さ・同じ開始位置の動画が必要です。
-      </p>
-      <h3>対応する装飾</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>種類</th>
-            <th>コマンド</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>位置</td>
-            <td><code>naka</code> 流れる / <code>ue</code> 上 / <code>shita</code> 下</td>
-          </tr>
-          <tr>
-            <td>大きさ</td>
-            <td><code>small</code> / <code>medium</code> / <code>big</code></td>
-          </tr>
-          <tr>
-            <td>色</td>
-            <td>white, red, pink, orange, yellow, green, cyan, blue, purple, black / 各色の2系統（red2など）/
-              <code>#RRGGBB</code></td>
-          </tr>
-          <tr>
-            <td>速度・時間</td>
-            <td><code>speed=0.5</code>〜<code>speed=3</code> / <code>dur=4</code>（1〜30秒・速度より優先）</td>
-          </tr>
-          <tr>
-            <td>書体・装飾</td>
-            <td><code>font=gothic</code> / <code>font=mincho</code> / <code>font=mono</code> / <code>bold</code> /
-              <code>thin</code> / <code>italic</code> / <code>opacity=0.5</code></td>
-          </tr>
-        </tbody>
-      </table>
-      <p>コマンドは先頭の <code>[ ]</code> にスペース区切りで記述します。改行はJSON内の <code>\n</code>。先頭がコマンドとして認識されるテキストをそのまま表示したい場合、先頭に
-        <code>\</code> を付けます。例：<code>\[ue]これは文字です</code>。不明なコマンドは、ほかに有効な指定があれば無視し、すべて不明なら本文として表示します。</p>
-      <p>
-        流れるコメントの基本寿命は4秒、上下固定は3秒です。表示サイズ・縁取り・複数行・長文の縮小・レーン配置と追い越し回避を独自実装しています。混雑時は重なります。速度・書体等の一部コマンドはこのアプリ独自の拡張です。ニコニコの特殊コマンド、コメントアートの厳密な座標互換、公式のXML形式には未対応です。
-      </p>
-      <h3>03 — コメント付き動画を書き出す</h3>
-      <p>対応ブラウザーでは、動画とコメントをキャンバスに合成して、音声付きWebMとしてリアルタイム録画します。720p /
-        1080p・30fps、16:9（異なる縦横比は黒帯）です。MP4への直接出力ではありません。録画中はタブを前面に保ち、画面をロックしないでください。長時間・高解像度はメモリーを多く使用します。まず短い区間で確認してください。
-      </p>
-      <p>映像はブラウザーが再生できる形式に限ります。音声は元動画の音量設定を使用します。ミュートや音量0では無音になります。書き出しの保存ファイルを実際に再生して確認してください。</p>
-      <h3>保存・再現の注意</h3>
-      <ul>
-        <li>通信・自動同期・同時編集・クラウド保存は行いません。</li>
-        <li>ブラウザーのローカル領域にコメントのみを作業復元用として自動保存します（動画は保存しません）。プライベートモードや環境によって保存できない場合があります。JSONを正式な保存先にしてください。</li>
-        <li>フォント・OS・絵文字による字形や幅の差は残ります。同じJSONでもピクセル単位の一致は保証できません。厳密な見た目は書き出した動画で共有してください。</li>
-        <li>最大20,000件、1コメント4,000文字、JSON最大20MB。大量コメントの初期配置計算には時間がかかります。大量・長時間書き出しより区間ごとの運用を推奨します。</li>
-        <li>このHTML自体に動画やコメントは埋め込まれません。別の端末にもHTML・同じ動画・最新JSONを渡してください。</li>
-      </ul>
-    </div>
-  </dialog>
-  <dialog id="importDialog">
-    <div class="dialog-head">
-      <h2>コメントJSONの読み込み</h2><button class="iconbtn ghost" data-close aria-label="閉じる"><svg class="icon">
-          <use href="#i-close" />
-        </svg></button>
-    </div>
-    <div class="dialog-body">
-      <p id="importSummary"></p>
-      <div class="notice">「統合」は既存コメントを残し、同じ時刻・同じ内容を除いて追加します。「入れ替え」は現在の一覧を置き換えます。未保存の内容は、先にJSONへ保存してください。</div>
-      <div class="dialog-actions"><button id="replaceImport" class="danger">一覧を入れ替える</button><button id="mergeImport"
-          class="primary">既存の一覧に統合</button></div>
-    </div>
-  </dialog>
-  <dialog id="exportDialog">
-    <div class="dialog-head">
-      <h2>コメント付き動画を書き出す</h2><button class="iconbtn ghost" data-close aria-label="閉じる"><svg class="icon">
-          <use href="#i-close" />
-        </svg></button>
-    </div>
-    <div class="dialog-body">
-      <div class="notice warn">動画と同じ時間をかけて録画します。このタブを前面に保ってください。音声付きWebM・30fpsで保存します。まず10秒程度のテストをおすすめします。</div>
-      <div class="two-fields"><label class="field">開始（秒 / 分:秒）<input id="exportStart" type="text"
-            value="0"></label><label class="field">終了（秒 / 分:秒）<input id="exportEnd" type="text"></label></div>
-      <div class="two-fields"><label class="field">解像度<select id="exportResolution">
-            <option value="720">1280 × 720</option>
-            <option value="1080">1920 × 1080</option>
-          </select></label><label class="field">映像ビットレート<select id="exportBitrate">
-            <option value="5000000">5 Mbps（標準）</option>
-            <option value="10000000">10 Mbps（高画質）</option>
-            <option value="2500000">2.5 Mbps（軽量）</option>
-          </select></label></div>
-      <p class="small muted">表示ON/OFFに関係なく、すべてのコメントを合成します。元動画が16:9以外の場合は黒帯が入ります。録画中は投稿・編集・シークを無効にします。</p>
-      <div id="exportError" class="form-error" role="alert"></div><a id="recordDownload" class="result-link" hidden
-        download>録画した動画を保存</a>
-      <div class="dialog-actions"><button id="beginExport" class="primary">書き出しを開始</button></div>
-    </div>
-  </dialog>
-  <script>
-    'use strict';
-    const $ = id => document.getElementById(id);
-    const video = $('video'), overlay = $('overlay'), ctx = overlay.getContext('2d');
-    const W = 960, H = 540, MAX_COMMENTS = 20000, STORE = 'kome-studio-work-v1';
-    const colors = { white: '#ffffff', red: '#ff0000', pink: '#ff8080', orange: '#ffc000', yellow: '#ffff00', green: '#00ff00', cyan: '#00ffff', blue: '#0000ff', purple: '#c000ff', black: '#000000', white2: '#cccc99', niconicowhite: '#cccc99', red2: '#cc0033', truered: '#cc0033', pink2: '#ff33cc', orange2: '#ff6600', yellow2: '#999900', green2: '#00cc66', cyan2: '#00cccc', blue2: '#3399ff', purple2: '#6633cc', black2: '#666666' };
-    let comments = [], layout = [], uid = 0, videoURL = null, videoFile = null, dirty = false, editId = null, pendingImport = [], listLimit = 300, localTimer = null, lastActive = '', toastTimer = null, record = null, audioCtx = null, audioSource = null, audioDest = null, recordURL = null, recovery = null, busy = false, autoSaveOK = true;
-    function formatTime(n, ms = false) { n = Math.max(0, Number(n) || 0); const units = Math.floor(n * 1000 + 0.0001), s = Math.floor(units / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60); return (h ? String(h).padStart(2, '0') + ':' : '') + String(m % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') + (ms ? '.' + String(units % 1000).padStart(3, '0') : ''); }
-    function parseTime(s) { s = String(s).trim(); if (!s) return NaN; if (/^\d+(?:\.\d+)?$/.test(s)) return Number(s); const parts = s.split(':'); if (parts.length < 2 || parts.length > 3 || parts.some(p => !/^\d+(?:\.\d+)?$/.test(p))) return NaN; if (parts.slice(1).some(p => Number(p) >= 60)) return NaN; return parts.reduce((a, b) => a * 60 + Number(b), 0); }
-    function toast(msg) { clearTimeout(toastTimer); $('toast').textContent = msg; $('toast').hidden = false; toastTimer = setTimeout(() => $('toast').hidden = true, 5500); }
-    function err(id, msg) { $(id).textContent = msg; $(id).hidden = !msg; }
-    function roundTime(t) { return Math.round(t * 1000) / 1000; }
-    function parseContent(content) {
-      const style = { pos: 'naka', size: 'medium', color: '#ffffff', speed: 1, dur: null, font: 'gothic', weight: 700, italic: false, opacity: 1 }; let text = content, cmd = '', unknown = []; if (content.startsWith('\\[')) return { style, text: content.slice(1), cmd, unknown }; const m = content.match(/^\[([^\]\n]{0,500})\] ?/); if (m) {
-        let known = 0; const tokens = m[1].trim().split(/\s+/); for (const token of tokens) { const t = token.toLowerCase(); if (['naka', 'ue', 'shita'].includes(t)) { style.pos = t; known++; } else if (['small', 'medium', 'big'].includes(t)) { style.size = t; known++; } else if (colors[t]) { style.color = colors[t]; known++; } else if (/^#[\da-f]{6}$/.test(t)) { style.color = t; known++; } else if (/^speed=(?:\d+(?:\.\d+)?|\.\d+)$/.test(t) && Number(t.slice(6)) >= .25 && Number(t.slice(6)) <= 3) { style.speed = Number(t.slice(6)); known++; } else if (/^dur=(?:\d+(?:\.\d+)?|\.\d+)$/.test(t) && Number(t.slice(4)) >= 1 && Number(t.slice(4)) <= 30) { style.dur = Number(t.slice(4)); known++; } else if (['font=gothic', 'font=mincho', 'font=mono'].includes(t)) { style.font = t.slice(5); known++; } else if (t === 'bold' || t === 'thin') { style.weight = t === 'thin' ? 400 : 700; known++; } else if (t === 'italic') { style.italic = true; known++; } else if (/^opacity=(?:\d+(?:\.\d+)?|\.\d+)$/.test(t) && Number(t.slice(8)) >= .1 && Number(t.slice(8)) <= 1) { style.opacity = Number(t.slice(8)); known++; } else if (t === '184') { known++; } else if (t) unknown.push(token); }
-        if (known) { text = content.slice(m[0].length); cmd = m[1]; } else unknown = [];
-      }
-      return { style, text, cmd, unknown };
-    }
-    function fontString(style, size) { const family = style.font === 'mincho' ? 'Georgia,"Yu Mincho","Noto Serif CJK JP",serif' : style.font === 'mono' ? 'Consolas,"Noto Sans Mono CJK JP",monospace' : 'Arial,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans CJK JP",sans-serif'; return `${style.italic ? 'italic ' : ''}${style.weight} ${size}px ${family}`; }
-    function sortComments() { comments.sort((a, b) => a.time - b.time || (a.content < b.content ? -1 : a.content > b.content ? 1 : 0) || a.id - b.id); }
-    function buildLayout() {
-      sortComments(); layout = []; let prior = { naka: [], ue: [], shita: [] }; for (const c of comments) {
-        const parsed = parseContent(c.content), s = parsed.style; let size = { small: 25, medium: 38, big: 54 }[s.size]; let lines = parsed.text.replace(/\r\n?/g, '\n').split('\n'); ctx.font = fontString(s, size); let width = Math.max(1, ...lines.map(line => ctx.measureText(line).width)); const maxWidth = s.pos === 'naka' ? W * 1.8 : W - 24; let scale = Math.min(1, maxWidth / width, (H - 24) / (lines.length * size * 1.12)); size *= scale; width *= scale; const height = lines.length * size * 1.12 + 6, dur = s.dur ?? ((s.pos === 'naka' ? 4 : 3) / s.speed), speed = (W + width + 16) / dur;
-        const item = { c, s, text: parsed.text, lines, size, width: width + 8, height, dur, speed, end: c.time + dur, y: 8 };
-        prior[s.pos] = prior[s.pos].filter(p => p.end > c.time);
-        const overlaps = p => { if (s.pos !== 'naka') return true; const begin = c.time, finish = Math.min(item.end, p.end); const at = t => ({ a: W + 4 - speed * (t - begin), b: W + 4 - p.speed * (t - p.c.time) }); const a = at(begin), b = at(finish); const d0 = a.a - a.b, d1 = b.a - b.b; return Math.min(d0, d1) < p.width + 10 && Math.max(d0, d1) > -item.width - 10; };
-        const blockers = prior[s.pos].filter(overlaps), candidates = [8, ...blockers.map(p => p.y + p.height + 5)].sort((a, b) => a - b); let found = false; for (const y of candidates) { if (y + height > H - 8) continue; if (!blockers.some(p => y < p.y + p.height + 5 && y + height + 5 > p.y)) { item.y = y; found = true; break; } }
-        if (!found) { let best = Infinity, bestY = 8; for (let y = 8; y + height <= H - 8; y += Math.max(12, size * 1.12)) { let area = 0; for (const p of blockers) area += Math.max(0, Math.min(y + height, p.y + p.height) - Math.max(y, p.y)); if (area < best) { best = area; bestY = y; } } item.y = bestY; }
-        prior[s.pos].push(item); layout.push(item);
-      }
-    }
-    function drawComments(target, t, show = true) {
-      target.clearRect(0, 0, W, H); if (!show) return; target.save(); target.textBaseline = 'top'; target.lineJoin = 'round'; for (const a of activeItems(t)) { let x = a.s.pos === 'naka' ? W + 4 - a.speed * (t - a.c.time) : (W - a.width) / 2; let y = a.s.pos === 'shita' ? H - a.y - a.height : a.y; target.font = fontString(a.s, a.size); target.globalAlpha = a.s.opacity; target.fillStyle = a.s.color; target.strokeStyle = '#000'; target.lineWidth = Math.max(2.2, a.size / 12); target.shadowColor = 'rgba(0,0,0,.8)'; target.shadowBlur = 2; for (let i = 0; i < a.lines.length; i++) { let line = a.lines[i], lx = x + 4; if (a.s.pos !== 'naka') lx = (W - target.measureText(line).width) / 2; target.strokeText(line, lx, y + i * a.size * 1.12 + 3); target.fillText(line, lx, y + i * a.size * 1.12 + 3); } }
-      target.restore();
-    }
-    function activeItems(t) { const maxLife = 30; let lo = 0, hi = layout.length; while (lo < hi) { let mid = (lo + hi) >> 1; if (layout[mid].c.time <= t) lo = mid + 1; else hi = mid; } const out = []; for (let i = lo - 1; i >= 0 && layout[i].c.time > t - maxLife; i--)if (layout[i].end > t) out.push(layout[i]); return out.reverse(); }
-    function drawExportFrame(r) { const c = r.ctx; c.fillStyle = '#000'; c.fillRect(0, 0, r.canvas.width, r.canvas.height); if (video.readyState >= 2 && video.videoWidth) { const scale = Math.min(r.canvas.width / video.videoWidth, r.canvas.height / video.videoHeight), w = video.videoWidth * scale, h = video.videoHeight * scale; c.drawImage(video, (r.canvas.width - w) / 2, (r.canvas.height - h) / 2, w, h); } drawComments(r.overlayCtx, video.currentTime, true); c.drawImage(r.overlay, 0, 0, r.canvas.width, r.canvas.height); }
-    let lastUi = 0; function frame(now) { drawComments(ctx, video.currentTime, $('showComments').checked); if (record) { drawExportFrame(record); $('recordProgress').value = Math.min(1, (video.currentTime - record.from) / (record.to - record.from)); if (video.currentTime >= record.to && !record.finishing) finishRecording(); } if (now - lastUi > 100) { $('currentTime').textContent = formatTime(video.currentTime, true); if (!record) $('seek').value = video.currentTime; updateTimePill(); highlightActive(); lastUi = now; } requestAnimationFrame(frame); } requestAnimationFrame(frame);
-    function updateTimePill() { const custom = $('postTime').value.trim(); $('timePill').textContent = (custom ? (Number.isFinite(parseTime(custom)) ? formatTime(parseTime(custom), true) : '時刻を確認') : formatTime(video.currentTime, true)) + ' に投稿'; }
-    function getPacket() { return comments.map(c => ({ time: c.time, content: c.content })); }
-    function autoSave() { clearTimeout(localTimer); localTimer = setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify({ comments: getPacket(), videoName: videoFile?.name ?? '', savedAt: new Date().toISOString() })); autoSaveOK = true; } catch (e) { autoSaveOK = false; } updateSaveStatus(); }, 250); }
-    function updateSaveStatus() { if (!autoSaveOK) $('saveStatus').textContent = '端末の自動保存は利用不可 · JSONで保存してください'; else $('saveStatus').textContent = dirty ? '変更あり · JSONを保存してから共有してください' : '通信なし · JSONで作業を持ち出せます'; }
-    function changed() { dirty = true; listLimit = 300; buildLayout(); renderList(); autoSave(); updateSaveStatus(); }
-    function setLock(locked) { for (const id of ['openVideoBtn', 'emptyOpenBtn', 'importBtn', 'importTextBtn', 'sampleBtn', 'restoreBtn', 'commentText', 'postTime', 'postBtn', 'cancelEdit', 'position', 'size', 'color', 'speed', 'font', 'rawMode', 'playBtn', 'seek', 'playRate', 'volume', 'fullscreenBtn']) $(id).disabled = locked || (['playBtn', 'seek'].includes(id) && !videoFile); $('exportBtn').disabled = locked || !videoFile; renderList(); }
-    function rowIcon(name) { return `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
-    function renderList() {
-      const list = $('commentList'); list.replaceChildren(); $('commentCount').textContent = comments.length.toLocaleString(); const q = $('search').value.toLowerCase(), filtered = comments.filter(c => c.content.toLowerCase().includes(q)); $('listSummary').textContent = q ? `${filtered.length}件ヒット` : '時刻順'; let outside = Number.isFinite(video.duration) ? comments.filter(c => c.time >= video.duration).length : 0; $('durationWarning').hidden = !outside; $('durationWarning').textContent = `動画の長さ以降のコメントが${outside}件あります。`;
-      if (!filtered.length) { const empty = document.createElement('div'); empty.className = 'list-empty'; empty.innerHTML = rowIcon('chat'); const p = document.createElement('div'); p.textContent = q ? '該当するコメントはありません' : 'まだ、静かなタイムライン。'; empty.append(p); if (!q) { const t = document.createElement('div'); t.className = 'small'; t.style.marginTop = '8px'; t.textContent = '投稿するか、JSONを読み込みましょう。'; empty.append(t); } list.append(empty); return; }
-      for (const c of filtered.slice(0, listLimit)) { const p = parseContent(c.content), row = document.createElement('div'); row.className = 'comment-row'; row.dataset.id = c.id; const jump = document.createElement('button'); jump.className = 'jump'; jump.textContent = formatTime(c.time, true); jump.title = `${c.time}秒へ移動`; jump.disabled = !!record || busy || !videoFile; jump.onclick = () => { video.currentTime = Math.min(c.time, video.duration || 0); }; const body = document.createElement('div'); body.className = 'row-body'; const text = document.createElement('div'); text.className = 'row-text'; text.textContent = p.text; const bottom = document.createElement('div'); bottom.className = 'row-bottom'; const style = document.createElement('span'); style.className = 'row-style'; style.textContent = p.cmd || '標準'; style.title = p.cmd; const actions = document.createElement('div'); actions.className = 'row-actions'; const edit = document.createElement('button'); edit.title = 'コメントを編集'; edit.setAttribute('aria-label', 'コメントを編集'); edit.innerHTML = rowIcon('edit'); edit.disabled = !!record || busy; edit.onclick = () => startEdit(c); const del = document.createElement('button'); del.title = 'コメントを削除'; del.setAttribute('aria-label', 'コメントを削除'); del.className = 'danger'; del.innerHTML = rowIcon('trash'); del.disabled = !!record || busy; del.onclick = () => { if (confirm('このコメントを削除しますか？')) { comments = comments.filter(x => x.id !== c.id); if (editId === c.id) resetComposer(); changed(); } }; actions.append(edit, del); bottom.append(style, actions); body.append(text, bottom); row.append(jump, body); list.append(row); }
-      if (filtered.length > listLimit) { const more = document.createElement('button'); more.textContent = `さらに300件を表示（残り${filtered.length - listLimit}件）`; more.style.cssText = 'margin:12px;width:calc(100% - 24px)'; more.onclick = () => { listLimit += 300; renderList(); }; list.append(more); } lastActive = ''; highlightActive();
-    }
-    function highlightActive() { const ids = new Set(activeItems(video.currentTime).map(a => String(a.c.id))); const key = [...ids].join(','); if (key === lastActive) return; lastActive = key; document.querySelectorAll('.comment-row').forEach(el => el.classList.toggle('active', ids.has(el.dataset.id))); }
-    function commandPrefix() { return `[${$('position').value} ${$('size').value} ${$('color').value} speed=${$('speed').value} font=${$('font').value}]`; }
-    function updatePreview() { $('commandPreview').textContent = $('rawMode').checked ? '入力した内容をそのまま保存します。' : commandPrefix(); for (const id of ['position', 'size', 'color', 'speed', 'font']) $(id).disabled = $('rawMode').checked || !!record; }
-    function resetComposer() { editId = null; $('commentText').value = ''; $('postTime').value = ''; $('composeTitle').textContent = 'コメントを作成'; $('postBtn').querySelector('span').textContent = 'コメントする'; $('cancelEdit').hidden = true; err('composeError', ''); }
-    function startEdit(c) { video.pause(); editId = c.id; $('commentText').value = c.content; $('rawMode').checked = true; $('postTime').value = String(c.time); $('composeTitle').textContent = 'コメントを編集'; $('postBtn').querySelector('span').textContent = '変更を保存'; $('cancelEdit').hidden = false; $('rawMode').closest('details').open = true; updatePreview(); $('commentText').focus(); $('commentText').scrollIntoView({ block: 'nearest' }); }
-    function post() { if (record || busy) return; const text = $('commentText').value; if (!text.trim()) { err('composeError', 'コメントを入力してください。'); return; } const time = $('postTime').value.trim() ? parseTime($('postTime').value) : video.currentTime; if (!Number.isFinite(time) || time < 0) { err('composeError', '時刻は0以上の秒数、または 分:秒 で入力してください。'); return; } if (!editId && comments.length >= MAX_COMMENTS) { err('composeError', 'コメントは20,000件までです。'); return; } const content = $('rawMode').checked ? text : commandPrefix() + text; if (content.length > 4000) { err('composeError', '装飾を含めて4,000文字以内にしてください。'); return; } if (editId) { const c = comments.find(c => c.id === editId); if (c) { c.time = roundTime(time); c.content = content; } } else comments.push({ id: ++uid, time: roundTime(time), content }); const unknown = parseContent(content).unknown; resetComposer(); changed(); if (unknown.length) toast('保存しました。不明なコマンドは無視されます：' + unknown.join(', ')); }
-    function validatePacket(data) { if (!Array.isArray(data)) throw Error('JSONの最上位はコメントの配列 [ ... ] にしてください。'); if (data.length > MAX_COMMENTS) throw Error('1ファイル20,000件までです。'); return data.map((c, i) => { if (!c || typeof c !== 'object' || Array.isArray(c) || typeof c.time !== 'number' || !Number.isFinite(c.time) || c.time < 0 || typeof c.content !== 'string' || c.content.length > 4000 || !c.content.trim()) throw Error(`${i + 1}件目：timeは0以上の数値、contentは1〜4,000文字の文字列にしてください。`); return { time: roundTime(c.time), content: c.content }; }); }
-    async function importFiles(files) { if (record || busy) return; const arr = [...files]; if (!arr.length) return; try { pendingImport = []; for (const file of arr) { if (file.size > 20 * 1024 * 1024) throw Error(`${file.name}：20MB以下のJSONにしてください。`); let text = (await file.text()).replace(/^\uFEFF/, ''); let data; try { data = JSON.parse(text); } catch (e) { throw Error(`${file.name}：JSONの文法を確認してください。`); } pendingImport.push(...validatePacket(data)); if (pendingImport.length > MAX_COMMENTS) throw Error('読み込むコメントの合計は20,000件までです。'); } const unknown = pendingImport.filter(c => parseContent(c.content).unknown.length).length; $('importSummary').textContent = `${arr.length}ファイル、${pendingImport.length.toLocaleString()}件のコメントを読み込みます。` + (unknown ? ` 不明なコマンドを含むコメントが${unknown}件あります（不明な指定は無視されます）。` : ''); $('importDialog').showModal(); } catch (e) { pendingImport = []; toast(e.message); } finally { $('jsonInput').value = ''; } }
-    function applyImport(merge) { if (record || busy) return; if (!merge && comments.length && !confirm('現在のコメント一覧を入れ替えます。未保存の変更は一覧から消えます。続けますか？')) return; let next, removed = 0; if (merge) { const all = [...getPacket(), ...pendingImport], seen = new Set(); next = all.filter(c => { const k = JSON.stringify([c.time, c.content]); if (seen.has(k)) { removed++; return false; } seen.add(k); return true; }); } else next = pendingImport; if (next.length > MAX_COMMENTS) { toast('統合後は20,000件以内にしてください。'); return; } comments = next.map(c => ({ ...c, id: ++uid })); pendingImport = []; $('importDialog').close(); resetComposer(); changed(); toast(`${comments.length.toLocaleString()}件を読み込みました。` + (removed ? ` 重複${removed}件を除外。` : '')); }
-    function downloadBlob(blob, name) { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
-    function safeName(name) { return (name || 'comments').replace(/\.[^.]*$/, '').replace(/[\\/:*?"<>|]/g, '_').slice(0, 100); }
-    function saveJSON() { const blob = new Blob([JSON.stringify(getPacket(), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }); downloadBlob(blob, safeName(videoFile?.name || 'comments') + '.comments.json'); dirty = false; updateSaveStatus(); toast('更新版JSONをダウンロードしました。元ファイルは自動上書きされません。'); }
-    function loadVideo(file) { if (record || busy) return; if (!file) return; if (!file.type.startsWith('video/') && !/\.(mp4|webm|mkv|mov|m4v|og[gv]|avi)$/i.test(file.name)) { toast('動画ファイルを選択してください。'); return; } if (videoFile && comments.length && !confirm('動画を変更します。コメントはそのまま残ります。同じタイミングの動画か確認してください。')) return; video.pause(); if (videoURL) URL.revokeObjectURL(videoURL); videoFile = file; videoURL = URL.createObjectURL(file); video.src = videoURL; video.load(); $('videoName').textContent = file.name; $('videoName').title = file.name; $('emptyPlayer').hidden = true; $('videoInput').value = ''; if (!recovery) autoSave(); }
-    async function togglePlay() { if (!videoFile || record) return; try { if (video.paused) { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); await video.play(); } else video.pause(); } catch (e) { toast('動画を再生できません。ファイル形式やブラウザーの対応を確認してください。'); } }
-    function onMetadata() { if (!Number.isFinite(video.duration) || video.duration <= 0) { toast('動画の長さを取得できません。別の形式でお試しください。'); return; } $('seek').max = video.duration; $('duration').textContent = formatTime(video.duration); $('emptyPlayer').hidden = true; setLock(false); updatePreview(); renderList(); }
-    video.addEventListener('loadedmetadata', onMetadata); video.addEventListener('error', () => { if (record) { record.error = '動画の再生エラーで録画を停止しました。'; finishRecording(); } toast('この動画を再生できません。MP4（H.264/AAC）やWebMなど、対応する形式を試してください。'); $('emptyPlayer').hidden = false; $('exportBtn').disabled = true; $('playBtn').disabled = true; });
-    function updatePlayIcon() { const paused = video.paused; $('playBtn').innerHTML = rowIcon(paused ? 'play' : 'pause'); $('playBtn').setAttribute('aria-label', paused ? '再生' : '一時停止'); } video.addEventListener('play', updatePlayIcon); video.addEventListener('pause', updatePlayIcon); video.addEventListener('ended', () => { if (record) finishRecording(); });
-    async function waitSeek(t) { if (Math.abs(video.currentTime - t) < .001 && video.readyState >= 2) return; await new Promise((resolve, reject) => { let timer; const done = () => { clearTimeout(timer); video.removeEventListener('seeked', done); resolve(); }; video.addEventListener('seeked', done); timer = setTimeout(() => { video.removeEventListener('seeked', done); reject(Error('再生位置の準備に時間がかかっています。動画を一度再生してからお試しください。')); }, 10000); video.currentTime = t; }); }
-    async function prepareAudio() { if (!window.AudioContext && !window.webkitAudioContext) throw Error('音声の録画に未対応です。最新のChrome / Edgeをお試しください。'); if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioSource = audioCtx.createMediaElementSource(video); audioDest = audioCtx.createMediaStreamDestination(); audioSource.connect(audioCtx.destination); audioSource.connect(audioDest); } await audioCtx.resume(); }
 
-    // MediaRecorderのWebMヘッダーにDurationを補完。大きな動画本体は再エンコードしない。
-    async function addWebmDuration(blob, ms) {
-      const b = new Uint8Array(await blob.slice(0, 65536).arrayBuffer());
-      function element(p) { const first = b[p]; if (!first) return null; let il = 1, mask = 128; while (!(first & mask) && il <= 4) { il++; mask >>= 1; } if (il > 4 || p + il >= b.length) return null; let id = 0; for (let i = 0; i < il; i++)id = id * 256 + b[p + i]; const sp = p + il, sf = b[sp]; if (!sf) return null; let sl = 1, m = 128; while (!(sf & m) && sl <= 8) { sl++; m >>= 1; } if (sl > 8 || sp + sl > b.length) return null; let size = sf & (m - 1), unknown = size === m - 1; for (let i = 1; i < sl; i++) { size = size * 256 + b[sp + i]; unknown = unknown && b[sp + i] === 255; } const data = sp + sl; return { id, sp, sl, data, size: unknown ? Infinity : size, end: unknown ? Infinity : data + size }; }
-      let pos = 0, segment = null; while (pos < b.length) { const e = element(pos); if (!e) break; if (e.id === 0x18538067) { segment = e; break; } if (!Number.isFinite(e.end)) break; pos = e.end; }
-      if (!segment || segment.size !== Infinity) return blob;
-      let info = null; pos = segment.data; while (pos < b.length) { const e = element(pos); if (!e) break; if (e.id === 0x1549a966) { info = e; break; } if (!Number.isFinite(e.end)) break; pos = e.end; }
-      if (!info || info.end > b.length) return blob; let scale = 1000000, duration = null; pos = info.data; while (pos < info.end) { const e = element(pos); if (!e || e.end > info.end) break; if (e.id === 0x2ad7b1) { scale = 0; for (let i = e.data; i < e.end; i++)scale = scale * 256 + b[i]; } if (e.id === 0x4489) duration = e; pos = e.end; }
-      const ticks = ms * 1000000 / scale;
-      if (duration && (duration.size === 4 || duration.size === 8)) { const data = b.slice(0, info.end), view = new DataView(data.buffer); if (duration.size === 4) view.setFloat32(duration.data, ticks); else view.setFloat64(duration.data, ticks); return new Blob([data, blob.slice(info.end)], { type: blob.type }); }
-      if (duration) return blob;
-      const entry = new Uint8Array(11); entry.set([0x44, 0x89, 0x88]); new DataView(entry.buffer).setFloat64(3, ticks); const newSize = info.size + 11; let sl = info.sl; while (newSize >= Math.pow(2, 7 * sl) - 1) sl++; if (sl > 8) return blob; const sizeBytes = new Uint8Array(sl); let n = newSize; for (let i = sl - 1; i >= 0; i--) { sizeBytes[i] = n % 256; n = Math.floor(n / 256); } sizeBytes[0] |= 1 << (8 - sl);
-      return new Blob([blob.slice(0, info.sp), sizeBytes, blob.slice(info.data, info.end), entry, blob.slice(info.end)], { type: blob.type });
-    }
+<header class="topbar">
+  <div class="brand">KOME <b>Studio</b></div>
+  <div class="tb-group">
+    <button id="btnOpenVideo" class="primary">🎬 動画を開く</button>
+  </div>
+  <div class="tb-group">
+    <button id="btnOpenComments" title="コメントファイルを開く（現在のコメントと置き換え）">📂 コメントを開く</button>
+    <button id="btnMerge" title="複数のコメントファイルを現在のコメントに統合">🔀 マージ</button>
+    <button id="btnSave" title="保存 (Ctrl+S)">💾 保存</button>
+    <button id="btnSaveAs" title="名前を付けて保存 (Ctrl+Shift+S)">名前を付けて保存</button>
+  </div>
+  <div class="tb-group">
+    <button id="btnTimeline" class="desk-only" title="タイムラインの表示切替">🎞 タイムライン</button>
+    <button id="btnExport">⏺ コメ付き書き出し</button>
+    <button id="btnConnection">共同編集について</button>
+    <button id="btnHelp" title="使い方">？</button>
+  </div>
+  <div class="status">
+    <span id="videoStatus">動画: なし</span>
+    <span id="fileStatus"></span>
+    <button id="projectBtn" class="collab proj" hidden title="プロジェクトの一覧（切り替え・新しいタブで開く）"></button>
+    <button id="collabStatus" class="collab" hidden></button>
+    <button id="conflictBtn" class="collab warn" hidden title="ほかの人の変更と重なった変更を確認する"></button>
+  </div>
+</header>
 
-    function canRecord() { return typeof MediaRecorder !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function'; }
-    function showExport() { if (!videoFile || record || busy) return; $('exportStart').value = '0'; $('exportEnd').value = String(roundTime(video.duration)); $('recordDownload').hidden = !recordURL; err('exportError', canRecord() ? '' : 'このブラウザーは録画に未対応です。最新のChrome / Edgeでお試しください。'); $('beginExport').disabled = !canRecord(); $('exportDialog').showModal(); }
-    async function beginExport() {
-      if (record || busy) return; const from = parseTime($('exportStart').value), to = parseTime($('exportEnd').value); if (!Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || to > video.duration + .002) { err('exportError', '0 ≤ 開始 < 終了 ≤ 動画の長さ となるように入力してください。'); return; } if (to - from > 300 && !confirm('5分以上の録画はメモリーを多く使用します。短い区間への分割を推奨します。続けますか？')) return;
-      err('exportError', ''); busy = true; $('beginExport').disabled = true; setLock(true); const saved = { time: video.currentTime, rate: video.playbackRate, paused: video.paused }; let stream = null, r = null; try {
-        video.pause(); await prepareAudio(); await waitSeek(from); video.playbackRate = 1; const canvas = document.createElement('canvas'), height = Number($('exportResolution').value); canvas.width = height / 9 * 16; canvas.height = height; const oc = document.createElement('canvas'); oc.width = W; oc.height = H; stream = canvas.captureStream(30); for (const t of audioDest.stream.getAudioTracks()) stream.addTrack(t.clone()); const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(s => MediaRecorder.isTypeSupported(s)); if (!mime) throw Error('WebM録画に未対応です。最新のChrome / Edgeをお試しください。'); const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Number($('exportBitrate').value), audioBitsPerSecond: 192000 }); r = { recorder, stream, canvas, ctx: canvas.getContext('2d'), overlay: oc, overlayCtx: oc.getContext('2d'), from, to, saved, chunks: [], finishing: false, error: null, bytes: 0 };
-        recorder.ondataavailable = e => { if (e.data.size) { r.chunks.push(e.data); r.bytes += e.data.size; if (r.bytes > 600 * 1024 * 1024 && !r.finishing) { r.error = '録画が600MBに達したため、ここまでを保存します。区間を分けて続きを録画してください。'; finishRecording(); } } }; recorder.onerror = () => { r.error = '録画エラーが発生しました。保存できた範囲を確認してください。'; finishRecording(); }; recorder.onstop = () => finalizeRecording(r); record = r; busy = false; setLock(true); $('exportDialog').close(); $('recordPanel').hidden = false; $('recordLabel').textContent = `書き出し中 · ${formatTime(from)} → ${formatTime(to)}`; drawExportFrame(r); r.startedAt = performance.now(); recorder.start(1000); await video.play();
-      } catch (e) { if (record) { record.error = e.message; finishRecording(); } else { if (stream) stream.getTracks().forEach(t => t.stop()); video.playbackRate = saved.rate; video.currentTime = saved.time; busy = false; setLock(false); updatePreview(); err('exportError', e.message); $('beginExport').disabled = false; } }
-    }
-    function finishRecording() { if (!record || record.finishing) return; const r = record; r.finishing = true; r.elapsedMs = Math.max(1, performance.now() - (r.startedAt || performance.now())); video.pause(); $('recordLabel').textContent = '保存データを整理しています…'; if (r.recorder.state !== 'inactive') r.recorder.stop(); else finalizeRecording(r); }
-    async function finalizeRecording(r) {
-      if (r.finalized) return; r.finalized = true; r.stream.getTracks().forEach(t => t.stop()); if (recordURL) URL.revokeObjectURL(recordURL); let blob = new Blob(r.chunks, { type: r.recorder.mimeType || 'video/webm' }); r.chunks = []; try { blob = await addWebmDuration(blob, r.elapsedMs || Math.max(1, video.currentTime - r.from) * 1000); } catch (e) { r.error = (r.error ? r.error + ' ' : '') + '再生時間情報の追加に失敗しました。保存後の動画のシークには制限がある場合があります。'; } if (blob.size) { recordURL = URL.createObjectURL(blob); const a = $('recordDownload'); a.href = recordURL; a.download = safeName(videoFile?.name) + `.comments.${formatTime(r.from).replace(/:/g, '-')}.webm`; a.textContent = `録画した動画を保存（${(blob.size / 1024 / 1024).toFixed(1)} MB）`; a.hidden = false; }
-      record = null; busy = false; video.playbackRate = r.saved.rate; $('playRate').value = String(r.saved.rate); video.currentTime = r.saved.time; $('recordPanel').hidden = true; setLock(false); updatePreview(); $('beginExport').disabled = false; err('exportError', r.error || ''); $('exportDialog').showModal(); toast(r.error || '書き出しが完了しました。「録画した動画を保存」からダウンロードしてください。');
-    }
-    $('openVideoBtn').onclick = $('emptyOpenBtn').onclick = () => $('videoInput').click(); $('videoInput').onchange = e => loadVideo(e.target.files[0]); $('importBtn').onclick = $('importTextBtn').onclick = () => $('jsonInput').click(); $('jsonInput').onchange = e => importFiles(e.target.files); $('saveBtn').onclick = saveJSON; $('helpBtn').onclick = () => $('helpDialog').showModal(); $('exportBtn').onclick = showExport; $('beginExport').onclick = beginExport; $('stopRecord').onclick = finishRecording; document.querySelectorAll('[data-close]').forEach(el => el.onclick = () => el.closest('dialog').close()); $('mergeImport').onclick = () => applyImport(true); $('replaceImport').onclick = () => applyImport(false); $('postBtn').onclick = post; $('cancelEdit').onclick = resetComposer; $('search').oninput = () => { listLimit = 300; renderList(); }; $('playBtn').onclick = togglePlay; $('seek').oninput = () => { if (!record) video.currentTime = Number($('seek').value); }; $('playRate').onchange = () => { if (!record) video.playbackRate = Number($('playRate').value); }; $('volume').oninput = () => video.volume = Number($('volume').value); $('fullscreenBtn').onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('stage').requestFullscreen(); } catch (e) { toast('このブラウザーでは全画面表示を利用できません。'); } };
-    ['position', 'size', 'color', 'speed', 'font', 'rawMode'].forEach(id => $(id).addEventListener('input', updatePreview)); $('postTime').addEventListener('input', updateTimePill);['postTime', 'commentText'].forEach(id => $(id).addEventListener('focus', () => { if (!record) video.pause(); })); $('commentText').addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); post(); } });
-    document.addEventListener('keydown', e => { if (document.querySelector('dialog[open]') || record || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) || e.target.isContentEditable) return; if (e.code === 'Space') { e.preventDefault(); togglePlay(); } if (videoFile && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + (e.key === 'ArrowLeft' ? -5 : 5))); } });
-    let dragCount = 0; $('stage').addEventListener('dragenter', e => { e.preventDefault(); dragCount++; $('stage').classList.add('drag'); }); $('stage').addEventListener('dragover', e => e.preventDefault()); $('stage').addEventListener('dragleave', () => { if (--dragCount <= 0) { dragCount = 0; $('stage').classList.remove('drag'); } }); $('stage').addEventListener('drop', async e => { e.preventDefault(); dragCount = 0; $('stage').classList.remove('drag'); if (record || busy) return; const files = [...e.dataTransfer.files], json = files.filter(f => /\.json$/i.test(f.name)), v = files.find(f => f.type.startsWith('video/') || /\.(mp4|webm|mkv|mov|m4v|og[gv]|avi)$/i.test(f.name)); if (v) loadVideo(v); if (json.length) await importFiles(json); if (!v && !json.length) toast('動画またはJSONファイルをドロップしてください。'); }); window.addEventListener('dragover', e => e.preventDefault()); window.addEventListener('drop', e => e.preventDefault());
-    $('sampleBtn').onclick = () => { if (record) return; const examples = [{ time: 0, content: '[ue big white]KOME Studioへようこそ' }, { time: 1, content: '[naka medium white]動画にあわせて、ひとこと！' }, { time: 2, content: '[naka big cyan]ここ好き' }, { time: 2.3, content: '[naka medium pink]わかる！' }, { time: 4, content: '[shita small yellow]JSONを共有すれば、別の端末でも再生できます' }, { time: 5, content: '[naka medium #99ff99 speed=0.5]ゆっくり流れるコメント' }, { time: 7, content: '[ue medium orange font=mincho]上に固定・明朝体' }, { time: 9, content: '[naka big white]みんなで、続きをつくろう。' }]; if (comments.length + examples.length > MAX_COMMENTS) { toast('コメント数の上限です。'); return; } comments.push(...examples.map(c => ({ ...c, id: ++uid }))); changed(); toast('サンプル8件を追加しました。0〜13秒付近を再生してください。'); };
-    try { const raw = localStorage.getItem(STORE); if (raw) { const data = JSON.parse(raw), valid = validatePacket(data.comments); if (valid.length) { recovery = valid; $('recoverBanner').hidden = false; } } } catch (e) { }
-    $('restoreBtn').onclick = () => { if (!recovery) return; if (comments.length && !confirm('現在の一覧を、この端末の復元データで置き換えますか？')) return; comments = recovery.map(c => ({ ...c, id: ++uid })); recovery = null; $('recoverBanner').hidden = true; changed(); toast('コメントを復元しました。同じ動画を開いてください。'); }; $('discardRecovery').onclick = () => { if (!confirm('端末に残っている作業復元データを破棄しますか？')) return; recovery = null; $('recoverBanner').hidden = true; try { localStorage.removeItem(STORE); } catch (e) { } };
-    window.addEventListener('beforeunload', e => { if (dirty || record) { e.preventDefault(); e.returnValue = ''; } }); document.addEventListener('visibilitychange', () => { if (document.hidden && record) toast('録画中はタブを前面に戻してください。バックグラウンドではコマ落ちすることがあります。'); });
-    updatePreview(); updateTimePill();
-  </script>
+<section id="recoveryBanner" class="recovery-banner" aria-label="作業データの復元" hidden>
+  <span>このブラウザーに前回の作業データがあります。動画は開き直してください。</span>
+  <button id="recoveryRestore">コメントを復元</button><button id="recoveryDismiss">復元せず続ける</button>
+</section>
+<main class="layout" id="layout">
+  <section class="player-col">
+    <div class="player" id="player">
+      <div class="stage" id="stage">
+        <video id="video" playsinline preload="auto"></video>
+        <canvas id="commentCanvas"></canvas>
+        <div class="peer-cursors" id="peerCursors"></div>
+        <div class="follow-bar" id="followBar" hidden><span class="dot"></span><span><b id="followName"></b> を追いかけています</span><button id="followStop">やめる</button></div>
+        <div class="empty" id="emptyState">
+          <div class="empty-title">動画ファイルをここにドロップ</div>
+          <div class="empty-sub">または上の「動画を開く」から選択してください。<br>
+            コメントファイル（.json / .jsonl / .csv / ニコニコ形式 .xml）もドロップで読み込めます。</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="seek" id="seek">
+          <canvas id="density"></canvas>
+          <div class="seek-track"><div class="seek-fill" id="seekFill"></div><div class="seek-knob" id="seekKnob"></div></div>
+          <div class="peer-marks" id="peerMarks"></div>
+          <div class="seek-tip" id="seekTip">0:00</div>
+        </div>
+        <div class="ctrl-row">
+          <button class="icon" id="btnPlay" title="再生/一時停止 (Space)"></button>
+          <span class="time" id="timeText">0:00 / 0:00</span>
+          <div class="vol">
+            <button class="icon" id="btnMute" title="ミュート (M)"></button>
+            <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+          </div>
+          <div class="spacer"></div>
+          <span class="ccount" id="commentCount">コメント 0</span>
+          <select id="rate" title="再生速度">
+            <option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1.0x</option>
+            <option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2.0x</option>
+          </select>
+          <button class="icon" id="btnToggleComments" title="コメント表示 ON/OFF (C)"></button>
+          <button class="icon" id="btnFull" title="フルスクリーン (F)"></button>
+        </div>
+      </div>
+      <div class="comment-bar">
+        <button id="btnPalette" class="cmd-btn" title="コマンド一覧">コマンド</button>
+        <input id="cmdInput" class="cmd-input" placeholder="例: ue red big" spellcheck="false" autocomplete="off">
+        <textarea id="textInput" rows="1" placeholder="コメントを入力（Enterで投稿 / Shift+Enterで改行）"></textarea>
+        <span id="charCount" class="char-count">0</span>
+        <button id="btnPost" class="post">コメントする</button>
+      </div>
+      <div class="presets" id="presets"></div>
+      <div class="palette" id="palette" hidden></div>
+    </div>
+  </section>
+
+  <div class="m-resize" id="mResize" title="ドラッグで動画の大きさを変更（ダブルタップで元に戻す）"></div>
+  <nav class="mtabs" id="mtabs">
+    <button class="mtab" data-mpane="timeline">🎞 タイムライン</button>
+    <button class="mtab" data-mpane="list">☰ リスト</button>
+    <button class="mtab" data-mpane="vim">⌨ Vim</button>
+    <button class="mtab" data-mpane="history">🕘 履歴</button>
+  </nav>
+
+  <div class="side-resize" id="sideResize" title="ドラッグで幅を変える（ダブルクリックで元に戻す）"></div>
+  <aside class="side" id="side">
+    <div class="side-tabs">
+      <button class="stab" data-pane="list">コメントリスト</button>
+      <button class="stab" data-pane="vim">Vim エディタ</button>
+      <button class="stab" data-pane="history">変更履歴</button>
+    </div>
+    <div class="pane" id="paneList">
+    <div class="side-head">
+      <div class="side-title">コメントリスト<span id="listCount">0件</span></div>
+      <label class="chk"><input type="checkbox" id="autoScroll" checked> 自動スクロール</label>
+    </div>
+    <input id="search" class="search" placeholder="コメント・コマンドで絞り込み" autocomplete="off">
+    <div class="list-head"><span>時間</span><span>コメント</span><span>コマンド</span><span></span></div>
+    <div class="list" id="list"></div>
+    <details class="settings">
+      <summary>設定</summary>
+      <div class="set-grid">
+        <label for="setOpacity">コメントの不透明度</label><input type="range" id="setOpacity" min="0.2" max="1" step="0.05">
+        <label for="setPause">コメント入力中は一時停止</label><input type="checkbox" id="setPause">
+        <label for="setBorder">自分のコメントを枠で囲む</label><input type="checkbox" id="setBorder">
+        <label for="setAutosave">投稿・削除時に自動保存</label><input type="checkbox" id="setAutosave">
+        <label for="setFormat">ダウンロード保存の形式</label>
+        <select id="setFormat"><option value="json">JSON</option><option value="csv">CSV</option><option value="xml">ニコニコXML</option><option value="jsonl">JSONL</option></select>
+        <label for="setLetterbox">プレビューの帯の色</label>
+        <span class="lb-row"><input type="color" id="setLetterbox"><button id="setLetterboxReset" title="黒に戻す">黒に戻す</button></span>
+      </div>
+      <div class="note" id="fsNote"></div>
+      <button id="btnLegacySave">旧KOME形式でダウンロード</button>
+      <a class="btn" href="legacy.html">旧版を開く</a>
+    </details>
+    </div>
+    <div class="pane" id="paneHistory" hidden>
+      <div class="side-head">
+        <div class="side-title">変更履歴<span id="histCount"></span></div>
+        <button id="histConflicts" class="warn" hidden></button>
+      </div>
+      <p class="muted hist-note" id="histNote"></p>
+      <div class="hist" id="histList"></div>
+    </div>
+    <div class="pane" id="paneVim" hidden>
+      <div class="vim-head">
+        <span class="muted">:w で反映 · :q で閉じる · :help で一覧</span>
+        <span class="spacer"></span>
+        <button data-k="<Esc>" title="ノーマルモードに戻る (Esc)">Esc</button>
+        <button data-ex="w" title="バッファをコメントに反映 (:w)">反映 :w</button>
+        <button data-ex="e!" title="コメントから読み直し (:e!)">読み直し :e!</button>
+        <button data-ex="help" title="ヘルプ (:help)">?</button>
+      </div>
+      <div class="vim" id="vim">
+        <div class="vim-screen" id="vimScreen"></div>
+        <div class="vim-status" id="vimStatus"></div>
+        <div class="vim-cmd" id="vimCmd"></div>
+        <div class="vim-more" id="vimMore" hidden></div>
+        <textarea class="vim-input" id="vimInput" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Vim 入力"></textarea>
+      </div>
+      <div class="vim-keys" id="vimKeys">
+        <button data-k="<Esc>">Esc</button><button data-k="ctrl" id="vimCtrl">Ctrl</button><button data-k="<Tab>">Tab</button>
+        <button data-k=":">:</button><button data-k="/">/</button><button data-k="<Left>">←</button><button data-k="<Down>">↓</button>
+        <button data-k="<Up>">↑</button><button data-k="<Right>">→</button><button data-k="u">u</button><button data-k="<C-r>">^R</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<section class="timeline" id="timeline">
+  <div class="tl-resize" id="tlResize" title="ドラッグで高さを変更（ダブルクリックで元に戻す）"></div>
+  <div class="tl-bar">
+    <button id="tlNew" class="primary" title="再生位置に新しいコメントを作成">＋ 新規</button>
+    <button id="tlEdit" title="選択中のコメントを編集 (Enter / ダブルクリック)">✎ 編集</button>
+    <button id="tlDelete" title="選択中のコメントを削除 (Delete)">🗑 削除</button>
+    <span class="tl-sep"></span>
+    <button id="tlUndo" title="元に戻す (Ctrl+Z)">↶</button>
+    <button id="tlRedo" title="やり直す (Ctrl+Shift+Z)">↷</button>
+    <span class="tl-sep"></span>
+    <button id="tlSnap" title="スナップ (N)">🧲 スナップ</button>
+    <button id="tlFollow" title="再生中は再生位置に追従">⇥ 追従</button>
+    <span class="tl-sep"></span>
+    <button id="tlZoomOut" title="縮小 (-)">−</button>
+    <input type="range" id="tlZoom" class="tl-zoom" min="0" max="1000" value="500" title="ズーム">
+    <button id="tlZoomIn" title="拡大 (+)">＋</button>
+    <button id="tlFit" title="全体を表示 (Shift+Z)">全体</button>
+    <button id="tlSettings" title="タイムラインの設定（スクロールの方向など）">⚙</button>
+    <span class="tl-info" id="tlInfo"></span>
+  </div>
+  <div class="tl-ov" id="tlOv" title="全体表示：枠をドラッグで移動、枠の端をドラッグで拡大縮小"><canvas id="tlOvCanvas"></canvas></div>
+  <div class="tl-main" id="tlMain" tabindex="0" aria-label="タイムライン"><canvas id="tlCanvas"></canvas>
+    <div class="tl-vbar" id="tlVbar" hidden title="ドラッグで上下にスクロール"><div class="tl-vthumb" id="tlVthumb"></div></div>
+  </div>
+</section>
+
+<div class="toasts" id="toasts"></div>
+<div class="drop-overlay" id="dropOverlay">ドロップして読み込み</div>
+
+<input type="file" id="fileVideo" accept="video/*,.mp4,.m4v,.mov,.qt,.webm,.mkv,.ogv,.ts,.m2ts,.mts,.3gp" hidden>
+<input type="file" id="fileComments" accept=".json,.jsonl,.csv,.xml" hidden>
+<input type="file" id="fileMerge" accept=".json,.jsonl,.csv,.xml" multiple hidden>
+
+<dialog id="exportDlg">
+  <div class="dlg-head">コメ付き動画の書き出し</div>
+  <div class="dlg-body">
+    <div id="expForm" class="form-grid">
+      <label for="expMode">方式</label>
+      <select id="expMode">
+        <option value="fast">高速（バックグラウンドで処理）</option>
+        <option value="realtime">リアルタイム録画（互換モード）</option>
+      </select>
+      <label for="expContainer">形式</label>
+      <select id="expContainer">
+        <option value="mp4">MP4 (.mp4)</option>
+        <option value="mov">QuickTime (.mov)</option>
+        <option value="webm">WebM (.webm)</option>
+        <option value="mkv">Matroska (.mkv)</option>
+      </select>
+      <label for="expRes">解像度</label><select id="expRes"></select>
+      <label for="expFps">フレームレート</label>
+      <select id="expFps"><option value="0">動画に合わせる</option><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select>
+      <label for="expBitrate">ビットレート</label>
+      <select id="expBitrate"><option value="4">4 Mbps</option><option value="8" selected>8 Mbps</option><option value="16">16 Mbps</option><option value="30">30 Mbps</option></select>
+      <label>範囲</label>
+      <div class="inline"><input type="text" id="expStart" value="0:00"> 〜 <input type="text" id="expEnd" value=""></div>
+      <label>音声</label>
+      <div class="exp-audio">
+        <label class="chk"><input type="checkbox" id="expAudio" checked> 音声を含める</label>
+        <label class="chk" id="expMuteRow"><input type="checkbox" id="expMute" checked> 録画中はスピーカーから音を出さない</label>
+      </div>
+      <label>出力</label><span id="expFormat" class="muted"></span>
+    </div>
+    <p class="muted" id="expNote" style="margin:12px 0 0"></p>
+    <div id="expProgressBox" hidden>
+      <div class="progress"><div id="expBar"></div></div>
+      <div id="expText" class="muted"></div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button id="expClose">閉じる</button>
+    <button id="expCancel" hidden>中止</button>
+    <button id="expBg" hidden title="ダイアログを閉じて、ほかの作業をしながら書き出しを続けます">バックグラウンドで続行</button>
+    <button id="expStartBtn" class="primary">書き出し開始</button>
+  </div>
+</dialog>
+
+<dialog id="editDlg">
+  <div class="dlg-head" id="edTitle">コメントを編集</div>
+  <div class="dlg-body">
+    <div class="form-grid ed-grid">
+      <label for="edText">本文</label><textarea id="edText" rows="3" placeholder="Enterで確定 / Shift+Enterで改行"></textarea>
+      <label for="edTime">開始時刻</label>
+      <div class="inline"><input id="edTime" type="text" inputmode="decimal" spellcheck="false" autocomplete="off"><button type="button" id="edNow">再生位置</button></div>
+      <label for="edDur">表示時間</label>
+      <div class="inline"><input id="edDur" type="number" min="0.1" step="0.1"> 秒 <span class="muted" id="edSpeed"></span></div>
+      <label for="edPos">位置</label>
+      <select id="edPos"><option value="naka">流れる (naka)</option><option value="ue">上固定 (ue)</option><option value="shita">下固定 (shita)</option></select>
+      <label for="edCmd">コマンド</label><input id="edCmd" type="text" spellcheck="false" autocomplete="off">
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button id="edDelete" class="danger">削除</button><span class="spacer"></span>
+    <button id="edCancel">キャンセル</button><button id="edOk" class="primary">OK</button>
+  </div>
+</dialog>
+
+<dialog id="tlSetDlg">
+  <div class="dlg-head">タイムラインの設定</div>
+  <div class="dlg-body">
+    <div class="form-grid tlset-grid">
+      <label for="setWheelMouse">マウスホイール</label>
+      <select id="setWheelMouse">
+        <option value="time">横に移動（時間）</option>
+        <option value="tracks">縦にスクロール（段）</option>
+        <option value="zoom">拡大縮小</option>
+      </select>
+      <label for="setWheelPad">トラックパッド<br><span class="muted">Magic Mouse など</span></label>
+      <select id="setWheelPad">
+        <option value="auto">自動判別して360°自由に動かす</option>
+        <option value="always">常に360°自由に動かす</option>
+        <option value="never">マウスホイールと同じ扱い</option>
+      </select>
+    </div>
+    <p class="muted" style="margin:12px 0 0">360°モードでは、指の向きのとおりに横（時間）と縦（段）が同時に動きます。どちらのモードでも Shift+ホイールで縦横が入れ替わり、Ctrl（⌘）+ホイールやピンチで拡大縮小、左の見出し列の上では縦にスクロールします。<br>自動判別がうまく合わないときは「常に360°」か「マウスホイールと同じ扱い」に切り替えてください。</p>
+    <p class="muted" style="margin:8px 0 0">直前のスクロール: <b id="tlWheelKind">—</b></p>
+  </div>
+  <div class="dlg-foot"><button id="tlSetClose" class="primary">閉じる</button></div>
+</dialog>
+
+<dialog id="presetDlg">
+  <div class="dlg-head">コメントプリセット</div>
+  <div class="dlg-body">
+    <p class="muted" style="margin:0 0 10px">よく使うコメントを好きなだけ登録できます。ボタンを押すと再生位置にすぐ投稿されます（Shift+クリックで入力欄に挿入）。コマンドを空にすると入力欄のコマンドが使われます。先頭から10個はキーボードの 1〜9, 0 でも投稿できます。</p>
+    <div class="pr-list" id="prList"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="prAdd">＋ 追加</button>
+      <button id="prAddCurrent" title="コメント入力欄の本文とコマンドをプリセットに追加">入力欄の内容を追加</button>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button id="prCancel">キャンセル</button><button id="prSave" class="primary">保存</button>
+  </div>
+</dialog>
+
+<dialog id="conflictDlg">
+  <div class="dlg-head">ほかの人の変更と重なった変更</div>
+  <div class="dlg-body">
+    <p class="muted" style="margin:0 0 10px">同じコメントを同時に変えたため、変更はまだ反映されていません（今はホストにある内容になっています）。「元の値」は変更を始めたときの内容です。コメントごとにどうするか選んでください。<br>「あとで」にすると、ほかの参加者の一覧にも出て、誰でも選べるようになります。</p>
+    <div id="conflictList"></div>
+  </div>
+  <div class="dlg-foot"><button id="conflictLater">あとで</button><button id="conflictKeepAll">すべて今のままにする</button></div>
+</dialog>
+
+<dialog id="projectsDlg">
+  <div class="dlg-head">プロジェクト</div>
+  <div class="dlg-body">
+    <div id="projectsList" class="projects"></div>
+    <p class="muted" style="margin:10px 0 0">「開く」はこのタブのまま切り替えます（動画・再生位置・タイムラインの表示はプロジェクトごとに覚えていて、戻ってくると元に戻します）。「新しいタブ」なら、ほかのプロジェクトや同じプロジェクトを並べて作業できます。</p>
+  </div>
+  <div class="dlg-foot"><button id="projectsAuth" hidden>招待・ログインの管理</button><button id="projectsLogout" hidden>ログアウト</button><span class="spacer"></span><button id="projectsClose" class="primary">閉じる</button></div>
+</dialog>
+
+<dialog id="loginDlg">
+  <form id="loginForm">
+    <div class="dlg-head">ログイン</div>
+    <div class="dlg-body">
+      <p class="muted" style="margin:0 0 10px">このホストに入るには、ホストの人から受け取ったワンタイムパスワードを入れてください（1回だけ使えます。一度入れば、このブラウザでは次から入れ直す必要はありません）。</p>
+      <input id="loginCode" class="login-code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="ワンタイムパスワード">
+      <p id="loginErr" class="login-err"></p>
+    </div>
+    <div class="dlg-foot"><button id="loginOk" class="primary" type="submit">ログイン</button></div>
+  </form>
+</dialog>
+
+<dialog id="authDlg">
+  <div class="dlg-head">招待・ログインの管理</div>
+  <div class="dlg-body">
+    <form id="authForm" class="form-grid">
+      <label for="authName">名前</label><input id="authName" maxlength="40" placeholder="参加する人の名前（作者名になります）" autocomplete="off">
+      <label for="authKind">種類</label>
+      <select id="authKind"><option value="random">ランダム（英数字 10 文字）</option><option value="numeric">数字（6 桁）</option></select>
+      <label for="authTtl">有効期限</label>
+      <select id="authTtl"><option value="600">10 分</option><option value="3600">1 時間</option><option value="86400">1 日</option><option value="604800" selected>7 日</option></select>
+      <label for="authAdmin">管理者にする</label><label class="chk"><input type="checkbox" id="authAdmin"> 招待・取り消しもできる</label>
+      <span></span><button class="primary" type="submit">ワンタイムパスワードを発行</button>
+    </form>
+    <div id="authResult" class="auth-result" hidden>
+      <div class="auth-code" id="authCode"></div>
+      <div class="muted" id="authExpires"></div>
+      <div class="auth-link"><input id="authLink" readonly><button id="authCopy" type="button">リンクをコピー</button></div>
+    </div>
+    <div id="authLists"></div>
+  </div>
+  <div class="dlg-foot"><button id="authClose" class="primary">閉じる</button></div>
+</dialog>
+
+<dialog id="peersDlg">
+  <div class="dlg-head">共同編集の参加者</div>
+  <div class="dlg-body">
+    <div id="peersList" class="peers"></div>
+    <p class="muted" style="margin:10px 0 0">ほかの人の再生位置・選んでいるコメント・マウスカーソルは、その人の色でシークバーやタイムラインに出ます。<br>「追いかける」を押すと、その人の再生位置とタイムラインの表示に合わせ続けます（自分で操作するとやめます）。</p>
+  </div>
+  <div class="dlg-foot"><button id="peersRename">表示名を変更</button><span class="spacer"></span><button id="peersClose" class="primary">閉じる</button></div>
+</dialog>
+
+<dialog id="connectionDlg" aria-labelledby="connectionTitle">
+  <div class="dlg-head" id="connectionTitle">共同編集について</div>
+  <div class="dlg-body help">
+    <p>動画の編集・ファイル共有・書き出しは、KOME Studioだけで使えます。komenagareの起動や外部サービスへの送信は行いません。</p>
+    <p>リアルタイム共同編集だけは、接続先ホストが必要です。この版にはkomenagareのプロトコル4に対応するクライアントを含めています。</p>
+    <p>既存ホストの管理者がこのフォルダーを <code>--web</code> の配信元として指定した場合、そのホストから開いたKOME Studioで接続・衝突解決・変更履歴・プロジェクト切り替えが使えます。サーバー側コードの変更は不要です。</p>
+    <p>GitHub PagesやローカルHTMLから別ドメインのホストへ直接接続する方式ではありません。認証とブラウザーの同一オリジン制約を保つため、共同編集はホストが配信するURLから開いてください。</p>
+    <p class="muted">このリポジトリにホストプログラムは含めません。ホストを用意しない場合は「保存」「マージ」でコメントファイルを共有してください。</p>
+  </div>
+  <div class="dlg-foot"><button id="connectionClose" class="primary">閉じる</button></div>
+</dialog>
+
+<dialog id="helpDlg">
+  <div class="dlg-head">使い方</div>
+  <div class="dlg-body help">
+    <h4>KOME Studio互換版</h4>
+    <p>旧KOMEの <code>{time, content}</code> 配列と、komenagareのJSON / JSONL / CSV / XMLを読み込めます。通常のJSON保存はkomenagare形式です。旧版には設定の「旧KOME形式でダウンロード」を使ってください。</p>
+    <p>時刻は保持しますが、流れるコメントはkomenagareの規則に合わせて指定時刻の1秒前から出現します。speed / dur は @秒数へ変換します。等幅・太さ・斜体・個別透明度など、未対応の旧独自装飾はコマンド文字列として残り、読み込み時に通知します。旧版と同じ見た目が必要な場合は旧版を使ってください。</p>
+    <p>作業復元用データをブラウザーに保存します。正式なバックアップは「保存」で残してください。動画は保存・送信しません。</p>
+    <p>編集エンジンはApache-2.0のkomenagareを利用しています。詳細は同梱のNOTICEとLICENSEを参照してください。</p>
+    <h4>基本の流れ（複数人で作る場合）</h4>
+    <ol style="margin:0;padding-left:20px">
+      <li>全員が同じ動画ファイルを手元に用意し、「動画を開く」で読み込む</li>
+      <li>コメントファイル（.json）を開く。最初の人は新規のままでOK</li>
+      <li>コメントを書き込み、「保存」でファイルに書き出す（開いたファイルへ追記されます）</li>
+      <li>ファイルを共有し、受け取った側は「マージ」で自分のコメントと統合</li>
+    </ol>
+    <p class="muted">マージは「時刻・コマンド・本文」が完全に同じものを重複とみなす和集合です。同じ順序規則で並べ直すので、マージ後は誰の環境でもほぼ同じ配置で流れます（フォントの違いで多少ずれることはあります）。Chrome / Edge では開いたファイルに直接上書き保存でき、保存のたびにファイル側の新しいコメントも取り込みます（Dropbox などの共有フォルダ上のファイルを複数人で開いても失われにくくなっています）。</p>
+
+    <h4>コマンド（ニコニコ動画準拠）</h4>
+    <table>
+      <tr><td>位置</td><td><code>naka</code>（流れる・既定） <code>ue</code>（上固定） <code>shita</code>（下固定）</td></tr>
+      <tr><td>サイズ</td><td><code>big</code> <code>medium</code>（既定） <code>small</code></td></tr>
+      <tr><td>色</td><td><code>white</code> <code>red</code> <code>pink</code> <code>orange</code> <code>yellow</code> <code>green</code> <code>cyan</code> <code>blue</code> <code>purple</code> <code>black</code><br>
+        プレミアム色 <code>white2</code> <code>red2</code> … <code>black2</code>（<code>niconicowhite</code> <code>truered</code> 等の別名も可）、カラーコード <code>#RRGGBB</code></td></tr>
+      <tr><td>フォント</td><td><code>defont</code>（既定） <code>gothic</code> <code>mincho</code></td></tr>
+      <tr><td>表示時間</td><td><code>@秒数</code>（例 <code>@10</code>）</td></tr>
+      <tr><td>その他</td><td><code>invisible</code>（非表示） <code>full</code>（上下コメの縮小幅を画面全体に） <code>ender</code>（改行リサイズ無効） <code>_live</code>（半透明）</td></tr>
+    </table>
+    <p class="muted">同じ種類のコマンドが複数ある場合は先に書いたものが優先されます。改行の多いコメントは自動で縮小され（big 3行・medium 5行・small 7行以上）、上下固定で画面からはみ出すものは幅に合わせて縮小されます。表示しきれないコメントはランダムな高さに重なって表示されます。</p>
+
+    <h4>ショートカット</h4>
+    <table>
+      <tr><td>Space / K</td><td>再生・一時停止</td></tr>
+      <tr><td>← / →</td><td>5秒戻る / 進む（Shift で1秒）</td></tr>
+      <tr><td>↑ / ↓</td><td>音量</td></tr>
+      <tr><td>Enter</td><td>コメント入力欄へ移動</td></tr>
+      <tr><td>C / F / M</td><td>コメント表示切替 / フルスクリーン / ミュート</td></tr>
+      <tr><td>Ctrl+S</td><td>保存（Shift で名前を付けて保存）</td></tr>
+      <tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>コメント編集の取り消し / やり直し</td></tr>
+    </table>
+
+    <h4>タイムライン</h4>
+    <table>
+      <tr><td>全体表示（細い帯）</td><td>黄色い枠をドラッグで表示位置を移動、枠の左右端をドラッグで拡大縮小。枠の外をタップするとそこへジャンプ</td></tr>
+      <tr><td>コメントの移動</td><td>コメントをドラッグ（スマホは一度タップして選択してからドラッグ）</td></tr>
+      <tr><td>開始・終了の調整</td><td>選択したコメントの左端／右端をドラッグ。表示時間が変わり、流れるコメントはその分速さが変わります（<code>@秒数</code> が自動で付きます）</td></tr>
+      <tr><td>作成・本文の変更</td><td>「＋ 新規」、空いている所をダブルクリック（ダブルタップ）で作成。コメントをダブルクリックか Enter で本文や時刻を編集</td></tr>
+      <tr><td>拡大縮小・移動</td><td>Ctrl+ホイール・ピンチ・＋／− で拡大縮小、ホイール・空き部分のドラッグで移動。上下は右のスクロールバー、Shift+ホイール、左の見出し列でのホイールで。ホイールの向きは ⚙ で変更でき、トラックパッドや Magic Mouse では360°自由に動かせます。目盛りをドラッグで再生位置</td></tr>
+      <tr><td>高さ</td><td>タイムラインの上端をドラッグ（ダブルクリックで元に戻す）。縦向きのスマホでは「タイムライン／リスト／Vim／履歴」のタブの上のつまみをドラッグすると動画の大きさが変わり、残りが下の画面になります</td></tr>
+      <tr><td>追従</td><td>「⇥ 追従」がオンのとき、再生位置が中央まで来るとそこで止まり、タイムラインの方が流れます</td></tr>
+      <tr><td>キー（タイムライン選択中）</td><td><code>Delete</code> 削除　<code>Enter</code> 編集　<code>,</code> <code>.</code> 0.1秒ずらす（Shift で1秒）　<code>N</code> スナップ　<code>Shift+Z</code> 全体</td></tr>
+    </table>
+
+    <h4>コメントプリセット</h4>
+    <p class="muted" style="margin:0">入力欄の下の「＋ プリセットを登録」（登録後は「⚙ 編集」）から、よく使うコメント（<code>888</code> など）を好きなだけ登録できます。ボタンを押すと再生位置にすぐ投稿、Shift+クリックで入力欄に挿入。先頭10個はキー <code>1</code>〜<code>9</code>, <code>0</code> でも投稿できます。</p>
+
+    <h4>書き出し</h4>
+    <p class="muted" style="margin:0">「高速」は動画ファイルを直接デコード・エンコードするので再生より速く、処理中も編集やタブの切り替えができます（「バックグラウンドで続行」でダイアログを閉じても続きます）。形式は MP4 / MOV / WebM / MKV。対応していない環境や動画では「リアルタイム録画」を使ってください。</p>
+
+    <h4>Vim エディタ</h4>
+    <p class="muted" style="margin:0">コメントを1行1件のテキスト（<code>01:23.45 ue red | 本文</code>）として Vim のキー操作で編集できます。時刻やコマンドを書き換えて <code>:w</code> で反映、<code>:q</code> で閉じます。<code>:now</code> で再生位置に行を追加、<code>:seek</code> でカーソル行の時刻へ移動。対応キーの一覧はエディタ内で <code>:help</code>。スマホでは画面下のキーバーで Esc や Ctrl を入力できます（Esc は上の :w の隣にもあります）。</p>
+
+    <h4>変更履歴</h4>
+    <p class="muted" style="margin:0">右の「変更履歴」タブで、コメントの追加・変更・削除を新しい順に見られます。「取り消す」でその変更を打ち消す変更を加え（その後に同じコメントが変わっていれば止まります）、「移動」でそのコメントの時刻へ移ります。共同編集中は全員の変更が出ます。</p>
+
+    <h4>みんなで編集する</h4>
+    <p class="muted" style="margin:0"><code>komenagare</code> コマンドでホストしたページを開くと、ほかの参加者と同じコメントを同時に編集できます（右上に「共同編集」と表示されます）。変更はホストのフォルダに保存され、git の履歴に残ります。同じコメントの同じ項目を同時に変えたときは先に届いた方が残り、「⚠ 衝突」から自分の変更にする・相手のままにする・両方残すを選べます。「あとで」にした衝突はほかの参加者にも出て、誰でも選べます。接続が切れても編集を続けられ、つながり直したときに送られます。</p>
+    <p class="muted" style="margin:6px 0 0">ホストが複数のプロジェクトを共有しているときは、右上の「📁」からプロジェクトを切り替えたり、新しいタブで開いたりできます（同じプロジェクトを複数のタブで開いてもかまいません）。ホストがワンタイムパスワードを使っているときは、最初に受け取ったワンタイムパスワードでログインします。</p>
+    <p class="muted" style="margin:6px 0 0">ローカルネットワークの外から使うときは、ホストを <code>komenagare --otp --tunnel tailscale</code>（または <code>cloudflare</code> / <code>ngrok</code>）で起動するか、自分で用意した URL を <code>--public-url</code> で渡します。詳しくは README を見てください。</p>
+    <p class="muted" style="margin:6px 0 0">ほかの参加者の再生位置・選んでいるコメント・マウスカーソルは、その人の色でシークバー・タイムライン・リスト・プレビューに薄く出ます。右上の「共同編集」を押すと参加者の一覧が開き、表示名の変更や、選んだ人の再生位置とタイムラインの表示を「追いかける」ことができます（自分でシークやスクロールをするとやめます）。</p>
+
+    <h4>ファイル形式</h4>
+    <p class="muted" style="margin:0">JSON：<code>{"t": 秒, "cmd": "コマンド", "text": "本文", "id": "UUID"}</code> の配列（<code>comments</code> キー内）。CSV：<code>time,command,text,id</code> の4列。<code>id</code> は各コメントを見分ける番号で、省略すると読み込み時に新しく付きます。読み込みはニコニコのコメントXML（<code>&lt;chat vpos mail&gt;</code>）やコメントJSONにも対応しています。</p>
+  </div>
+  <div class="dlg-foot"><button id="helpClose" class="primary">閉じる</button></div>
+</dialog>
+
+<script src="js/vim-engine.js"></script>
+<script src="js/comment-store.js"></script>
+<script src="js/comment-render.js"></script>
+<script src="js/export-core.js"></script>
+<script src="js/kome-compat.js"></script>
+<script src="js/app.js"></script>
 </body>
-
 </html>

@@ -1,0 +1,67 @@
+/* KOME Studio shell overrides. Apache-2.0; upstream styles: komenagare.css. */
+:root{color-scheme:dark}
+.brand b{color:#5e9fe8}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #5e9fe8;outline-offset:2px}
+.topbar button,.comment-bar button,.dlg-foot button,.recovery-banner button{min-height:44px}
+.topbar{gap:8px 16px}
+.recovery-banner{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:8px 16px;background:#1d3150;border-bottom:1px solid #5e9fe8;font-size:14px;flex:none}
+.recovery-banner span{flex:1;min-width:220px}
+#connectionDlg{max-width:680px}
+#connectionDlg p{line-height:1.7;overflow-wrap:anywhere}
+#btnLegacySave{margin:8px 0}
+@media(prefers-color-scheme:light){
+  :root{color-scheme:light;--bg:#f9f8f7;--panel:#fff;--panel2:#f0efed;--line:#dedcd8;--text:#292928;--muted:#686560;--accent:#216fc0;--accent2:#8b5a00;--danger:#be4037;--ok:#277547}
+  .topbar{background:#fff}
+  button,select,input[type=text],input[type=number],input:not([type]),textarea,a.btn{background:#fff;border-color:#bcbab5;color:#292928}
+  button:hover,a.btn:hover{background:#e5f2fc}
+  button.primary{background:#216fc0;color:#fff}
+  .recovery-banner{background:#e5f2fc;color:#292928}
+  .side,.pane,.side-head,.list-head,.settings,.side-tabs,.mtabs,.tl-head,.tl-toolbar,dialog,.dlg-head,.dlg-foot{background:var(--panel);color:var(--text);border-color:var(--line)}
+  .row{border-color:#dedcd8;color:#292928}.row:hover,.row.current{background:#e5f2fc}
+  .row .text,.side-title,.dlg-head,.hist-meta b{color:#292928}
+  .hist-item,.hist-meta,.note,.muted{color:var(--muted)}
+  .search{background:#fff!important;color:#292928!important}
+  .settings summary{color:#292928}
+  .help table td{border-color:#dedcd8}
+  .help code,.help pre{background:#f0efed;color:#292928}
+}
+@media(max-width:600px){
+  .topbar{padding:8px;gap:8px}
+  .topbar .brand{width:100%}
+  .topbar .status{margin-left:0;width:100%;gap:8px}
+  .topbar button{font-size:14px;padding:6px 8px}
+  .recovery-banner{padding:8px;font-size:14px}
+  .dlg-body{padding:12px}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .inline{min-width:0;flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* Preview/timeline stay dark in either shell theme for video contrast. */
+.player,.timeline,.vim{--muted:#b7b7b7;--accent:#5e9fe8;color:#e9e9e9}
+.player .hint,.player .ccount,.tl-info{color:#b7b7b7}
+.player .post{color:#191919}
+.timeline button.on{color:#e5f2fc}
+.chk{color:var(--text)}
+.row .t,.row .cmd{color:var(--muted)}
+.mtab.on{color:#e5f2fc}
+@media(max-width:600px){
+  .topbar{flex-wrap:wrap;overflow:visible}
+  .topbar .brand{width:auto}
+  .topbar .tb-group{flex-wrap:wrap;min-width:0}
+  .topbar .status{width:auto;margin-left:0}
+  .topbar .desk-only{display:none}
+  .topbar button{min-height:44px}
+  .mtabs{min-width:0}
+  .mtab{min-width:0;white-space:nowrap;font-size:12px}
+  .toasts{max-width:calc(100vw - 24px)}
+}
+@media(max-width:600px){.topbar .tb-group{max-width:100%;flex:0 1 auto}.topbar .status{max-width:100%}}
+.row,.rt,.rm,.list-head,.chk,.help table,.help code{font-size:14px}
+.help h4{font-size:16px}
+.palette{color:#e9e9e9;--muted:#b7b7b7}
+.palette .chip{color:#e9e9e9}
+@media(prefers-color-scheme:light){
+  .rt,.rm{color:#686560}
+  .row.mine .rc{color:#292928}
+  .help td:first-child{color:#686560}
+}
