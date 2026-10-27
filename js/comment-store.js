@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Igarin
+// SPDX-FileCopyrightText: 2026 のすけtrue
+// SPDX-License-Identifier: Apache-2.0
+// このファイルは komenagare の js/comment-store.js（https://github.com/igarinpiano/komenagare）をもとに変更しています。
 'use strict';
 /* =====================================================================
    コメントの保管と変更（DOM 非依存。Node からも require できる）

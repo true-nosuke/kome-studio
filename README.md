@@ -139,9 +139,31 @@ CI設定例は `docs/ci-example.yml` にあります。接続経由では `.gith
 
 ## 由来とライセンス
 
+### komenagare（Apache-2.0）
+
 Web編集エンジンは [komenagare](https://github.com/igarinpiano/komenagare) の
-`84cb236261c244ae500afac16ff533d9a75f1057` を基にしています。
-採用したWebコードと本互換拡張はApache-2.0（`LICENSE`・`NOTICE`）です。
+`84cb236261c244ae500afac16ff533d9a75f1057` を基にしています。由来コードを含む
+ファイルと範囲は次のとおりです。
+
+- `js/app.js`：`parseTime`・`parseCmd`・`relayout`・コメントJSON/CSVの
+  `serialize`/`parseCSV`/`parseCommentText`、ニコニコ風コマンド解釈と配置、
+  `tlRelane`・`tlClampView`・`tlZoomAt`・`tlDraw`・`tlDrawOverview`・
+  `tlHit`・`tlDragBegin`・`tlDragUpdate`・`tlDragCommit`・`tlWheel` などの
+  タイムライン処理、ならびにコメントファイルの読み書きと共同編集接続。
+- `js/comment-render.js`：コメントのコマンド解釈結果を描画する定数・レイアウト・
+  描画処理の全体。
+- `js/comment-store.js`：UUID v7、変更セット、3-wayマージ、コメントの保管・適用処理の全体。
+- `css/komenagare.css`：komenagareのコメント表示・タイムライン用スタイルの全体
+  （KOME Studio向けに変更した部分を含む）。
+- `tests/comment-store.test.js`：上記コメントストアのテスト。
+
+これらのファイルには、Apache License 2.0 の著作権表示・SPDX表示と、変更したことの
+記載があります。採用したWebコードと本互換拡張はApache-2.0（`LICENSE`・`NOTICE`）です。
 元リポジトリのCLI・インストーラー・リリース処理は移植していません。
 `lib/mediabunny-1.61.6.min.js` は変更せず同梱しています（MPL-2.0、`lib/mediabunny-LICENSE.txt`）。
-保持した旧版 `legacy.html` と元のサンプルについて、この変更で新しいライセンスを指定するものではありません。
+
+`index.html` の画面構造、`js/kome-compat.js` の旧KOME形式変換、`js/export-core.js` と
+`js/export-worker.js` の書き出し処理、および `sample.comments.json` のサンプルは、
+komenagareと同じファイル形式・表示規則に対応するための独自実装であり、上記の由来コード
+一覧には含めていません。保持した旧版 `legacy.html` についても、この変更で新しいライセンス
+を指定するものではありません。

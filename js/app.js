@@ -1,4 +1,7 @@
-// Modified for KOME Studio; upstream attribution and revision: NOTICE.
+// SPDX-FileCopyrightText: 2026 Igarin
+// SPDX-FileCopyrightText: 2026 のすけtrue
+// SPDX-License-Identifier: Apache-2.0
+// このファイルは komenagare の js/app.js（https://github.com/igarinpiano/komenagare）をもとに変更しています。
 (() => {
 'use strict';
 

@@ -1,9 +1,18 @@
+This product includes software derived from komenagare (コメナガレ).
+komenagare (コメナガレ)
+Copyright 2026 Igarin
+https://github.com/igarinpiano/komenagare
+Licensed under the Apache License, Version 2.0.
+
+Mediabunny — Copyright (c) 2026-present, Vanilagy and contributors — Mozilla Public License 2.0 — https://github.com/Vanilagy/mediabunny
+
 KOME Studio
 
-The Web editor in index.html, css/, js/ (except kome-compat.js), and
-upstream tests is derived from komenagare by igarinpiano and contributors:
-https://github.com/igarinpiano/komenagare
-Pinned upstream commit: 84cb236261c244ae500afac16ff533d9a75f1057
+The following files contain code derived from komenagare by igarinpiano and
+contributors: js/app.js, js/comment-render.js, js/comment-store.js,
+css/komenagare.css, and tests/comment-store.test.js.
+The source was compared with pinned upstream commit:
+84cb236261c244ae500afac16ff533d9a75f1057
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 Modified for KOME Studio: branding, isolated browser storage, legacy JSON
